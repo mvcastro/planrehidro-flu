@@ -219,3 +219,13 @@ class CurvaDescarga(Base):
     CoefA1: Mapped[float]
     CoefA2: Mapped[float]
     CoefA3: Mapped[float]
+
+
+class PivotVazao:
+    __tablename__ = "PivotVazao"
+
+    RegistroID: Mapped[int] = mapped_column(primary_key=True)
+    EstacaoCodigo: Mapped[int]
+    Data: Mapped[date]
+    NivelConsistencia: Mapped[int]
+    Vazao: Mapped[float]

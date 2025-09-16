@@ -3,15 +3,20 @@ from typing import Literal, TypedDict
 from planrehidro_flu.core.parametros_calculo import (
     CalculoDoCriterio,
     CalculoDoCriterioAreaDrenagem,
+    CalculoDoCriterioDescargaLiquida,
+    CalculoDoCriterioDescargaLiquidaAnual,
+    CalculoDoCriterioDesvioCurvaChave,
+    CalculoDoCriterioExtensaoDaSerie,
     CalculoDoCriterioLocalizacaoSemiarido,
     CalculoDoCriterioProximidadeRHNR,
+    CalculoDoCriterioTelemetrica,
+    CalculoDoCriterioTotalDeDescargasLiquidas,
     CalculoDoCriterioTrechoDeNavegacao,
 )
 
 Grupo = Literal[
-    "Alocação da Estação",
-    "Operação da Estação",
-    "Dados da Estação",
+    "Localização da Estação",
+    "Qualidade dos Dados da Estação",
 ]
 
 
@@ -24,63 +29,63 @@ class CriterioSelecionado(TypedDict):
 
 parametros_multicriterio: list[CriterioSelecionado] = [
     {
-        "grupo": "Alocação da Estação",
+        "grupo": "Localização da Estação",
         "criterio": "Área de drenagem da bacia à montante",
         "unidade": "km²",
         "calculo": CalculoDoCriterioAreaDrenagem(),
     },
     {
-        "grupo": "Alocação da Estação",
+        "grupo": "Localização da Estação",
         "criterio": "Trecho usado para navegação",
         "unidade": "booleano",
         "calculo": CalculoDoCriterioTrechoDeNavegacao(),
     },
     {
-        "grupo": "Alocação da Estação",
+        "grupo": "Localização da Estação",
         "criterio": "Localizada na região semiárida",
         "unidade": "booleano",
         "calculo": CalculoDoCriterioLocalizacaoSemiarido(),
     },
     {
-        "grupo": "Alocação da Estação",
+        "grupo": "Localização da Estação",
         "criterio": "Proximidade à estação da RHNR",
         "unidade": "booleano",
         "calculo": CalculoDoCriterioProximidadeRHNR(),
     },
     {
-        "grupo": "Operação da Estação",
-        "criterio": "Idade",
+        "grupo": "Qualidade dos Dados da Estação",
+        "criterio": "Extensão da série de dados",
         "unidade": "anos",
-        "calculo": ,
+        "calculo": CalculoDoCriterioExtensaoDaSerie(),
     },
     {
-        "grupo": "Operação da Estação",
+        "grupo": "Qualidade dos Dados da Estação",
         "criterio": "Descarga Líquida",
         "unidade": "booleano",
-        "calculo": ,
+        "calculo": CalculoDoCriterioDescargaLiquida(),
     },
     {
-        "grupo": "Operação da Estação",
+        "grupo": "Qualidade dos Dados da Estação",
         "criterio": "Telemetria",
         "unidade": "booleano",
-        "calculo": ,
+        "calculo": CalculoDoCriterioTelemetrica(),
     },
     {
-        "grupo": "Dados da Estação",
+        "grupo": "Qualidade dos Dados da Estação",
         "criterio": "Desvio da Curva-Chave",
         "unidade": "percentual (%)",
-        "calculo": ,
+        "calculo": CalculoDoCriterioDesvioCurvaChave(),
     },
     {
-        "grupo": "Dados da Estação",
+        "grupo": "Qualidade dos Dados da Estação",
         "criterio": "Total de medições de descarga líquida",
         "unidade": "medições",
-        "calculo": ,
+        "calculo": CalculoDoCriterioTotalDeDescargasLiquidas(),
     },
     {
-        "grupo": "Dados da Estação",
+        "grupo": "Qualidade dos Dados da Estação",
         "criterio": "Medições de descarga líquida / Ano",
         "unidade": "medições/ano",
-        "calculo": ,
+        "calculo": CalculoDoCriterioDescargaLiquidaAnual(),
     },
 ]

@@ -22,6 +22,7 @@ from planrehidro_flu.databases.hidro.models import (
     Estado,
     Municipio,
     PivotChuva,
+    PivotVazao,
     ResumoDescarga,
     Rio,
     SubBacia,
@@ -118,7 +119,8 @@ class HidroDWReader:
                     Estacao.Temporario == 0,
                     Estacao.Removido == 0,
                     Estacao.ImportadoRepetido == 0,
-                ).distinct()
+                )
+                .distinct()
             )
 
             resposta = session.execute(estacao)
@@ -208,6 +210,12 @@ class HidroDWReader:
             response = session.execute(query).all()
             result = [CurvaDeDescarga(**row._mapping) for row in response]
         return result
+
+    def retorna_serie_historica(self, codigo: int) -> Sequence[PivotVazao]:
+        query = select(PivotVazao).where(PivotVazao.EstacaoCodigo == codigo)
+        with Session(self.engine) as session:
+            response = session.scalars(query).all()
+        return response
 
 
 if __name__ == "__main__":
