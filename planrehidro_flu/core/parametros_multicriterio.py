@@ -3,16 +3,14 @@ from typing import Literal, TypedDict
 from planrehidro_flu.core.parametros_calculo import (
     CalculoDoCriterio,
     CalculoDoCriterioAreaDrenagem,
-    CalculoDoCriterioDescargaLiquida,
     CalculoDoCriterioDescargaLiquidaAnual,
     CalculoDoCriterioDesvioCurvaChave,
     CalculoDoCriterioEmPoloDeIrrigacao,
     CalculoDoCriterioExtensaoDaSerie,
     CalculoDoCriterioISHNaAreaDrenagem,
+    CalculoDoCriterioLocalizacaoSemiarido,
     CalculoDoCriterioProximidadeRHNR,
     CalculoDoCriterioRelevanciaEspacial,
-    CalculoDoCriterioTelemetrica,
-    CalculoDoCriterioTotalDeDescargasLiquidas,
     CalculoDoCriterioTrechoDeNavegacao,
     CalculoDoCriterioTrechoVulnerabilidadeCheias,
 )
@@ -68,12 +66,12 @@ parametros_multicriterio: list[CriterioSelecionado] = [
         "unidade": "booleano",
         "calculo": CalculoDoCriterioTrechoDeNavegacao(),
     },
-    # {
-    #     "grupo": "Localização da Estação",
-    #     "criterio": "Localizada na região semiárida",
-    #     "unidade": "booleano",
-    #     "calculo": CalculoDoCriterioLocalizacaoSemiarido(),
-    # },
+    {
+        "grupo": "Localização da Estação",
+        "criterio": "Localizada na região semiárida",
+        "unidade": "booleano",
+        "calculo": CalculoDoCriterioLocalizacaoSemiarido(),
+    },
     {
         "grupo": "Localização da Estação",
         "criterio": "Proximidade à estação da RHNR",
@@ -88,27 +86,9 @@ parametros_multicriterio: list[CriterioSelecionado] = [
     },
     {
         "grupo": "Qualidade dos Dados da Estação",
-        "criterio": "Descarga Líquida",
-        "unidade": "booleano",
-        "calculo": CalculoDoCriterioDescargaLiquida(),
-    },
-    {
-        "grupo": "Qualidade dos Dados da Estação",
-        "criterio": "Telemetria",
-        "unidade": "booleano",
-        "calculo": CalculoDoCriterioTelemetrica(),
-    },
-    {
-        "grupo": "Qualidade dos Dados da Estação",
         "criterio": "Desvio da Curva-Chave",
         "unidade": "percentual (%)",
         "calculo": CalculoDoCriterioDesvioCurvaChave(),
-    },
-    {
-        "grupo": "Qualidade dos Dados da Estação",
-        "criterio": "Total de medições de descarga líquida",
-        "unidade": "medições",
-        "calculo": CalculoDoCriterioTotalDeDescargasLiquidas(),
     },
     {
         "grupo": "Qualidade dos Dados da Estação",
@@ -116,4 +96,22 @@ parametros_multicriterio: list[CriterioSelecionado] = [
         "unidade": "medições/ano",
         "calculo": CalculoDoCriterioDescargaLiquidaAnual(),
     },
+    # {
+    #     "grupo": "Qualidade dos Dados da Estação",
+    #     "criterio": "Descarga Líquida",
+    #     "unidade": "booleano",
+    #     "calculo": CalculoDoCriterioDescargaLiquida(),
+    # },
+    # {
+    #     "grupo": "Qualidade dos Dados da Estação",
+    #     "criterio": "Telemetria",
+    #     "unidade": "booleano",
+    #     "calculo": CalculoDoCriterioTelemetrica(),
+    # },
+    # {
+    #     "grupo": "Qualidade dos Dados da Estação",
+    #     "criterio": "Total de medições de descarga líquida",
+    #     "unidade": "medições",
+    #     "calculo": CalculoDoCriterioTotalDeDescargasLiquidas(),
+    # },
 ]

@@ -25,7 +25,7 @@ def insere_criterio(
     engine: Engine,
     codigo_estacao: int,
     criterio_selecionado: CriterioSelecionado,
-    valor_criterio: float | str | bool,
+    valor_criterio: int | float | str | bool,
 ) -> None:
     with Session(engine) as session:
         grupo_obj = GrupoCriterios(grupo=criterio_selecionado["grupo"])
@@ -57,10 +57,18 @@ def insere_criterio(
         else:
             criterio_obj = criterio_cadastrado
         
-        valor_criterio_obj = ValorCriterio(
-            codigo_estacao=codigo_estacao,
-            criterio=criterio_obj,
-            valor=valor_criterio,
-        )
+        if type(valor_criterio) in (int, float, bool):
+            valor_criterio_obj = ValorCriterio(
+                codigo_estacao=codigo_estacao,
+                criterio_id=criterio_obj.id,
+                valor_numero=valor_criterio
+            )
+        else:
+            valor_criterio_obj = ValorCriterio(
+                codigo_estacao=codigo_estacao,
+                criterio_id=criterio_obj.id,
+                valor_string=valor_criterio
+            )
+
         session.add(valor_criterio_obj)
         session.commit()

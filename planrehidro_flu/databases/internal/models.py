@@ -1,9 +1,10 @@
 from pathlib import Path
 
 from sqlalchemy import ForeignKey, create_engine
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from planrehidro_flu.databases.hidro.enums import TipoEstacao
+
 print(Path(__file__).parent)
 ENGINE = create_engine(f"sqlite:///{Path(__file__).parent / 'database.db'}")
 
@@ -37,26 +38,23 @@ class GrupoCriterios(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     grupo: Mapped[str] = mapped_column(unique=True)
 
-    criterios: Mapped["Criterio"] = relationship(back_populates="grupo")
 
-
-class Criterio(Base):
+class DescricaoCriterio(Base):
     __tablename__ = "criterio"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)   
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     grupo_id: Mapped[int] = mapped_column(ForeignKey("grupo_criterios.id"))
     criterio: Mapped[str] = mapped_column(unique=True)
     unidade: Mapped[str]
-
-    grupo: Mapped["GrupoCriterios"] = relationship(back_populates="criterios")
-    valores_criterio: Mapped["ValorCriterio"] = relationship(back_populates="criterio")
 
 
 class ValorCriterio(Base):
     __tablename__ = "valor_criterio"
 
     codigo_estacao: Mapped[int] = mapped_column(primary_key=True)
-    criterio_id: Mapped[int] = mapped_column(ForeignKey("criterio.id"), primary_key=True)
-    valor: Mapped[float]
+    criterio_id: Mapped[int] = mapped_column(
+        ForeignKey("criterio.id"), primary_key=True
+    )
+    valor_numero: Mapped[float] = mapped_column(nullable=True)
+    valor_string: Mapped[str] = mapped_column(nullable=True)
 
-    criterio: Mapped["Criterio"] = relationship(back_populates="valores_criterio")

@@ -22,6 +22,7 @@ from planrehidro_flu.databases.hidro.models import (
     Estado,
     Municipio,
     PivotChuva,
+    PivotCota,
     PivotVazao,
     ResumoDescarga,
     Rio,
@@ -183,7 +184,7 @@ class HidroDWReader:
                 CurvaDescarga.PeriodoValidadeInicio.label("data_validade_inicio"),
                 CurvaDescarga.PeriodoValidadeFim.label("data_validade_fim"),
                 CurvaDescarga.CotaMaxima.label("cota_maxima"),
-                CurvaDescarga.CotaMinima.label(" cota_minima"),
+                CurvaDescarga.CotaMinima.label("cota_minima"),
                 CurvaDescarga.TipoCurva.label("tipo_curva"),
                 CurvaDescarga.TipoEquacao.label("tipo_equacao"),
                 CurvaDescarga.CoefA.label("coef_a"),
@@ -210,10 +211,23 @@ class HidroDWReader:
             result = [CurvaDeDescarga(**row._mapping) for row in response]
         return result
 
-    def retorna_serie_historica(self, codigo: int) -> Sequence[PivotVazao]:
+    def retorna_serie_historica_vazao(self, codigo: int) -> Sequence[PivotVazao]:
         query = select(PivotVazao).where(PivotVazao.EstacaoCodigo == codigo)
         with Session(self.engine) as session:
             response = session.scalars(query).all()
+        return response
+
+    def retorna_serie_historica_cota(
+        self,
+        codigo: int,
+        nivel_consistencia: NivelConsistencia = NivelConsistencia.CONSISTIDO,
+    ) -> Sequence[PivotCota]:
+        query = select(PivotCota).where(
+            PivotCota.EstacaoCodigo == codigo,
+            PivotCota.NivelConsistencia == nivel_consistencia.value
+        )
+        with Session(self.engine) as session:
+            response = session.execute(query).scalars().all()
         return response
 
 

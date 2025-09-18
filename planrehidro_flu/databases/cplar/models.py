@@ -56,9 +56,9 @@ class EstacaoComObjetivos(Base):
     __table_args__ = {"schema": "objetivos_rhnr"}
 
     codigo_estacao: Mapped[int] = mapped_column(primary_key=True)
-    cobacia_estacao: Mapped[str]
-    cobacia_obj: Mapped[str]
-    criterio: Mapped[str]
+    cobacia_estacao: Mapped[str] = mapped_column(primary_key=True)
+    cobacia_obj: Mapped[str] = mapped_column(primary_key=True)
+    criterio: Mapped[str] = mapped_column(primary_key=True)
     dist_obj_km: Mapped[float]
     prop_areas: Mapped[float]
 
@@ -81,8 +81,9 @@ class TrechoNavegavel(Base):
 
 class TrechoVulneravelACheias(Base):
     __tablename__ = "geoft_hidrorref_inundacoes"
-    __table_args__ = {"schema": "geoft"}
+    __table_args__ = {"schema": "hidrorreferenciamento"}
 
+    id: Mapped[int] = mapped_column(primary_key=True)
     codigo: Mapped[int]
     cobacia: Mapped[str]
     inund_id: Mapped[int]
@@ -108,15 +109,18 @@ class PoloNacional(Base):
 
 
 class IndiceSegurancaHidrica(Base):
-    __tablename__ = "indice_seguranca_hidrica_2017"
+    __tablename__ = "indice_seguranca_hidrica_2017_area"
     __table_args__ = {"schema": "geoft"}
     
-    id: Mapped[int]
+    id: Mapped[int] = mapped_column(primary_key=True)
     cobacia : Mapped[str]
     ecossistema: Mapped[str]
     humana: Mapped[str]
     economica: Mapped[str]
     resiliencia: Mapped[str]
     brasil: Mapped[str]
+    nuareacont: Mapped[float]
+    nuareamont: Mapped[float]
+
 
     

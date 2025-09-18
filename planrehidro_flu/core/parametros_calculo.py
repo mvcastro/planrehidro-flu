@@ -1,14 +1,12 @@
+import calendar
 import json
 from abc import ABC, abstractmethod
-from datetime import date, timedelta
 from functools import cache
-
-import geopandas as gpd
 
 from planrehidro_flu.core.models import EstacaoHidro
 from planrehidro_flu.core.params_funcoes_suporte import (
     calcula_desvio_medio_curva_chave,
-    pivot_vazao_to_dataframe,
+    pivot_cota_to_dataframe,
     retorna_estatisticas_descarga_liquida,
 )
 from planrehidro_flu.databases.cplar.bd_cplar_reader import PostgresReader
@@ -45,7 +43,10 @@ class CalculoDoCriterioRelevanciaEspacial(CalculoDoCriterio):
             raise ValueError("Área de drenagem não informada")
 
         cplar_reader = create_cpalar_reader()
-        estacoes_a_montante = cplar_reader.retorna_estacoes_de_montante(estacao.bacia)
+        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(estacao.codigo)
+        estacoes_a_montante = cplar_reader.retorna_estacoes_de_montante(
+            estacao_href.cobacia
+        )
         if not estacoes_a_montante:
             return 0.0
 
@@ -70,14 +71,22 @@ class CalculoDoCriterioISHNaAreaDrenagem(CalculoDoCriterio):
             estacao_href.cobacia
         )
 
-        classes_ish = {"Alto": 0, "Baixo": 0, "Máximo": 0, "Médio": 0, "Mínimo": 0}
+        classes_ish = {
+            "Alto": 0.0,
+            "Baixo": 0.0,
+            "Máximo": 0.0,
+            "Médio": 0.0,
+            "Mínimo": 0.0,
+        }
 
         for ish in ish_cobacias:
             if ish.brasil is None:
                 continue
-            classes_ish[ish.brasil] += 1
+            classes_ish[ish.brasil] += ish.nuareacont
 
-        return json.dumps(classes_ish)
+        classes_ish = {classe: round(valor, 1) for classe, valor in classes_ish.items()}
+
+        return json.dumps(classes_ish, ensure_ascii=False)
 
 
 class CalculoDoCriterioEmPoloDeIrrigacao(CalculoDoCriterio):
@@ -102,9 +111,12 @@ class CalculoDoCriterioLocalizacaoSemiarido(CalculoDoCriterio):
         if estacao.latitude is None or estacao.longitude is None:
             raise ValueError("Coordenadas da estação não informadas")
         cplar_reader = create_cpalar_reader()
-        geometria_semiarido = cplar_reader.retorna_geometria_semiarido()
-        ponto_estacao = gpd.points_from_xy([estacao.longitude], [estacao.latitude])[0]
-        return bool(geometria_semiarido.contains(ponto_estacao).any())
+        return cplar_reader.esta_no_semiarido(
+            latitude=estacao.latitude, longitude=estacao.longitude
+        )
+        # geometria_semiarido = cplar_reader.retorna_geometria_semiarido()
+        # ponto_estacao = gpd.points_from_xy([estacao.longitude], [estacao.latitude])[0]
+        # return bool(geometria_semiarido.contains(ponto_estacao).any())
 
 
 class CalculoDoCriterioProximidadeRHNR(CalculoDoCriterio):
@@ -117,23 +129,22 @@ class CalculoDoCriterioProximidadeRHNR(CalculoDoCriterio):
 class CalculoDoCriterioExtensaoDaSerie(CalculoDoCriterio):
     def calcular(self, estacao: EstacaoHidro, **kwargs) -> CriterioOutput:
         hidro_reader = create_hidro_reader()
-        serie_historica = hidro_reader.retorna_serie_historica(estacao.codigo)
+        serie_historica = hidro_reader.retorna_serie_historica_cota(estacao.codigo)
         percentual_falhas = kwargs.get("percentual_falhas")
         limiar_falhas = percentual_falhas / 100 if percentual_falhas else 0.1
 
         if not serie_historica:
             raise ValueError("Nenhum dado disponível para a estação")
 
-        df_serie = pivot_vazao_to_dataframe(serie_historica)
+        df_serie = pivot_cota_to_dataframe(serie_historica)
         anos_disponiveis = df_serie.index.year.value_counts()  # type: ignore
         anos_completos = []
         ano_inicial = anos_disponiveis.index.min()
         ano_final = anos_disponiveis.index.max()
         for ano in range(ano_inicial, ano_final + 1):
-            total_dias_no_ano = (
-                date(ano, 12, 31) - date(ano, 1, 1) + timedelta(days=1)
-            ).days
-            if (1 - (anos_disponiveis[ano] / total_dias_no_ano)) >= limiar_falhas:
+            total_dias_no_ano = 366 if calendar.isleap(ano) else 365
+            total_dias_disponiveis = anos_disponiveis.get(ano, 0)
+            if (1 - (total_dias_disponiveis / total_dias_no_ano)) <= limiar_falhas:
                 anos_completos.append(ano)
 
         return len(anos_completos)
@@ -170,7 +181,7 @@ class CalculoDoCriterioTotalDeDescargasLiquidas(CalculoDoCriterio):
         resumo_de_descarga = hidro_reader.retorna_resumo_de_descarga(
             codigo=estacao.codigo
         )
-        estats = retorna_estatisticas_descarga_liquida(tuple(resumo_de_descarga))
+        estats = retorna_estatisticas_descarga_liquida(resumo_de_descarga)
         return estats[0]
 
 
@@ -180,5 +191,5 @@ class CalculoDoCriterioDescargaLiquidaAnual(CalculoDoCriterio):
         resumo_de_descarga = hidro_reader.retorna_resumo_de_descarga(
             codigo=estacao.codigo
         )
-        estats = retorna_estatisticas_descarga_liquida(tuple(resumo_de_descarga))
+        estats = retorna_estatisticas_descarga_liquida(resumo_de_descarga)
         return estats[1]

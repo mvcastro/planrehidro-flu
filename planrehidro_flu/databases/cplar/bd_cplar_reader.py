@@ -74,6 +74,19 @@ class PostgresReader:
         gdf = gpd.read_postgis(query, self.engine, geom_col="geom")
         return gdf.geometry
 
+    def esta_no_semiarido(self, latitude: float, longitude: float) -> bool:
+        query = text("""
+            SELECT * FROM geoft.semiarido_2024
+            WHERE ST_Intersects(geom, ST_Point(:longitude, :latitude, 4674)) 
+        """)
+
+        with Session(self.engine) as session:
+            response = session.execute(
+                query, {"longitude": longitude, "latitude": latitude}
+            ).first()
+
+        return False if response is None else True
+
     def retorna_objetivos_rhnr(self, codigo_estacao: int) -> list[str]:
         with Session(self.engine) as session:
             query = select(EstacaoComObjetivos).where(
@@ -92,9 +105,10 @@ class PostgresReader:
 
         query = text("""
             WITH area_drenagem AS (
-                SELECT ST_union(geom) AS geom
-                FROM geoft.bho_2013_areacontribuicao USING (cotrecho)
-                WHERE cobacia >= :cobacia AND cocursodag LIKE ':cocursodag%%'
+                SELECT geom
+                FROM geoft.bho_2013_areacontribuicao
+                WHERE cobacia >= :cobacia 
+                AND cocursodag LIKE CONCAT(:cocursodag, '%%')
             )
             SELECT * FROM estacoes.estacao_flu
             INNER JOIN area_drenagem
@@ -115,11 +129,13 @@ class PostgresReader:
     ) -> PoloNacional | None:
         query = text("""
             SELECT * FROM geoft.polos_nacionais_2021
-            WHERE ST_Intersects(geom, ST_Point(longitude, latitude, 4674)) 
+            WHERE ST_Intersects(geom, ST_Point(:longitude, :latitude, 4674)) 
         """)
 
         with Session(self.engine) as session:
-            response = session.execute(query).scalar()
+            response = session.execute(
+                query, {"longitude": longitude, "latitude": latitude}
+            ).scalar()
 
         return cast(PoloNacional, response)
 

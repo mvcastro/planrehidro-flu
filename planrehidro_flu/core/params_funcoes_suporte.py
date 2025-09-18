@@ -1,11 +1,10 @@
-from functools import cache
 from typing import Callable, Sequence
 
 import numpy as np
 import pandas as pd
 
 from planrehidro_flu.core.models import CurvaDeDescarga, ResumoDeDescarga
-from planrehidro_flu.databases.hidro.models import PivotVazao
+from planrehidro_flu.databases.hidro.models import PivotCota, PivotVazao
 
 
 def pivot_vazao_to_dataframe(serie_vazao: Sequence[PivotVazao]) -> pd.DataFrame:
@@ -19,7 +18,7 @@ def pivot_vazao_to_dataframe(serie_vazao: Sequence[PivotVazao]) -> pd.DataFrame:
             for row in serie_vazao
         ]
     )
-    dataframe["Data"] = pd.to_datetime(dataframe["data"])
+    dataframe["data"] = pd.to_datetime(dataframe["data"])
     df_serie = (
         dataframe.dropna()
         .sort_values(["data", "nivel_consistencia"])
@@ -27,17 +26,33 @@ def pivot_vazao_to_dataframe(serie_vazao: Sequence[PivotVazao]) -> pd.DataFrame:
         .set_index("data")
     )
 
-    # ano_inicial = df_serie.index.min().year
-    # ano_final = df_serie.index.max().year
-    # date_range = pd.date_range(start=f"{ano_inicial}-01-01", end=f"{ano_final}-12-31")
-    # df_serie = df_serie.reindex(date_range)
+    return df_serie
+
+
+def pivot_cota_to_dataframe(serie_vazao: Sequence[PivotCota]) -> pd.DataFrame:
+    dataframe = pd.DataFrame(
+        [
+            {
+                "data": row.Data,
+                "cota": row.Cota,
+                "nivel_consistencia": row.NivelConsistencia,
+            }
+            for row in serie_vazao
+        ]
+    )
+    dataframe["data"] = pd.to_datetime(dataframe["data"])
+    df_serie = (
+        dataframe.dropna()
+        .sort_values(["data", "nivel_consistencia"])
+        .drop_duplicates(subset=["data"], keep="last")
+        .set_index("data")
+    )
 
     return df_serie
 
 
-@cache
 def retorna_estatisticas_descarga_liquida(
-    resumo_descarga: list[ResumoDeDescarga]
+    resumo_descarga: list[ResumoDeDescarga],
 ) -> tuple[float, float]:
     if not resumo_descarga:
         raise ValueError("Nenhum resumo de descarga encontrado para o código fornecido")

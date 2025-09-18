@@ -27,8 +27,10 @@ def main() -> None:
     )
     # armazena_inventario(inventario)
 
-    for estacao in inventario:
-        for criterio in parametros_multicriterio:
+    for estacao in inventario[:3]:
+        print(f'Processando critérios para a estação {estacao.codigo}...')
+        for criterio in parametros_multicriterio[10:11]:
+            print(f'Critério: {criterio["criterio"]}')
             valor_criterio = criterio["calculo"].calcular(estacao)
             insere_criterio(
                 engine=ENGINE,
