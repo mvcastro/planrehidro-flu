@@ -35,9 +35,8 @@ class HidroDWReader:
     def __init__(self) -> None:
         driver = os.getenv("SQL_SERVER_DB_DRIVER")
         server = os.getenv("SQL_SERVERDB_SERVER")
-        connection_string = (
-            f"Driver={driver};Server={server};Database=Hidro;Trusted_Connection=yes;"
-        )
+        db_name = os.getenv("SQL_SERVER_DB_NAME")
+        connection_string = f"Driver={driver};Server={server};Database={db_name};Trusted_Connection=yes;"
         print(connection_string)
         connection_url = URL.create(
             "mssql+pyodbc", query={"odbc_connect": connection_string}

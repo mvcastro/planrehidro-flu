@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Literal
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -12,6 +13,29 @@ SitucaoNavegacao = Literal["Navegação sazonal", "Navegável"]
 SitucaoEstudos = Literal["Em desenvolvimento", "Concluído"]
 TipoHidrovia = Literal["Canal", "Lago", "Baía", "Rio", "Furo"]
 
+
+class EstacaoFlu(Base):
+    __tablename__ = "estacao_flu"
+    __table_args__ = {"schema": "hidrorreferenciamento"}
+
+    codigo: Mapped[int] = mapped_column(primary_key=True)
+    nome: Mapped[str]
+    codigo_adicional: Mapped[str]
+    latitude: Mapped[float]
+    longitude: Mapped[float]
+    altitude: Mapped[float]
+    area_drenagem: Mapped[float | None]
+    bacia_codigo: Mapped[int]
+    subbacia_codigo: Mapped[int]
+    rio_codigo: Mapped[int | None]
+    estado_codigo: Mapped[int]
+    municipio_codigo: Mapped[int]
+    ultima_atualizacao: Mapped[date]
+    operando: Mapped[int]
+    descricao: Mapped[str]
+    historico: Mapped[str]
+
+
 class EstacaoHidroRef(Base):
     __tablename__ = "estacaoes_hidrorreferenciadas"
     __table_args__ = {"schema": "hidrorreferenciamento"}
@@ -25,7 +49,8 @@ class EstacaoHidroRef(Base):
     nuareamont: Mapped[float]
     distancia_m: Mapped[float]
     tipo_href: Mapped[TipoHidroRef]
-    
+
+
 class EstacaoComObjetivos(Base):
     __tablename__ = "estacoes_objetivos_por_area2"
     __table_args__ = {"schema": "objetivos_rhnr"}
@@ -41,7 +66,7 @@ class EstacaoComObjetivos(Base):
 class TrechoNavegavel(Base):
     __tablename__ = "hidrorref_trechos_navegaveis"
     __table_args__ = {"schema": "geoft"}
-    
+
     cotrecho: Mapped[int] = mapped_column(primary_key=True)
     cocursodag: Mapped[str]
     cobacia: Mapped[str]
@@ -52,3 +77,46 @@ class TrechoNavegavel(Base):
     jurisdicao: Mapped[str]
     regiao_hidrografica: Mapped[str]
     situcao_estudos: Mapped[SitucaoEstudos]
+
+
+class TrechoVulneravelACheias(Base):
+    __tablename__ = "geoft_hidrorref_inundacoes"
+    __table_args__ = {"schema": "geoft"}
+
+    codigo: Mapped[int]
+    cobacia: Mapped[str]
+    inund_id: Mapped[int]
+    inund_noriocomp: Mapped[str]
+    inund_frequencia: Mapped[int]
+    inund_impacto: Mapped[int]
+    inund_vulnerabilidade: Mapped[int]
+    inund_cd_mun: Mapped[str]
+    inund_nome_mun: Mapped[str]
+
+
+class PoloNacional(Base):
+    __tablename__ = "polos_nacionais_2021"
+    __table_args__ = {"schema": "geoft"}
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nome: Mapped[str]
+    polo_irrig: Mapped[str]
+    tipologia: Mapped[str]
+    id2: Mapped[float]
+    shape_leng: Mapped[float]
+    shape_area: Mapped[float]
+
+
+class IndiceSegurancaHidrica(Base):
+    __tablename__ = "indice_seguranca_hidrica_2017"
+    __table_args__ = {"schema": "geoft"}
+    
+    id: Mapped[int]
+    cobacia : Mapped[str]
+    ecossistema: Mapped[str]
+    humana: Mapped[str]
+    economica: Mapped[str]
+    resiliencia: Mapped[str]
+    brasil: Mapped[str]
+
+    

@@ -25,7 +25,7 @@ def insere_criterio(
     engine: Engine,
     codigo_estacao: int,
     criterio_selecionado: CriterioSelecionado,
-    valor_criterio: float,
+    valor_criterio: float | str | bool,
 ) -> None:
     with Session(engine) as session:
         grupo_obj = GrupoCriterios(grupo=criterio_selecionado["grupo"])

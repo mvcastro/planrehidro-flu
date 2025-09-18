@@ -6,16 +6,20 @@ from planrehidro_flu.core.parametros_calculo import (
     CalculoDoCriterioDescargaLiquida,
     CalculoDoCriterioDescargaLiquidaAnual,
     CalculoDoCriterioDesvioCurvaChave,
+    CalculoDoCriterioEmPoloDeIrrigacao,
     CalculoDoCriterioExtensaoDaSerie,
-    CalculoDoCriterioLocalizacaoSemiarido,
+    CalculoDoCriterioISHNaAreaDrenagem,
     CalculoDoCriterioProximidadeRHNR,
+    CalculoDoCriterioRelevanciaEspacial,
     CalculoDoCriterioTelemetrica,
     CalculoDoCriterioTotalDeDescargasLiquidas,
     CalculoDoCriterioTrechoDeNavegacao,
+    CalculoDoCriterioTrechoVulnerabilidadeCheias,
 )
 
 Grupo = Literal[
     "Localização da Estação",
+    "Objetivos da Estação",
     "Qualidade dos Dados da Estação",
 ]
 
@@ -36,16 +40,40 @@ parametros_multicriterio: list[CriterioSelecionado] = [
     },
     {
         "grupo": "Localização da Estação",
+        "criterio": "Relevância espacial",
+        "unidade": "Nº estações / km²",
+        "calculo": CalculoDoCriterioRelevanciaEspacial(),
+    },
+    {
+        "grupo": "Objetivos da Estação",
+        "criterio": "Trecho com vulnerabilidade a cheias",
+        "unidade": "booleano",
+        "calculo": CalculoDoCriterioTrechoVulnerabilidadeCheias(),
+    },
+    {
+        "grupo": "Objetivos da Estação",
+        "criterio": "ISH na área de drenagem",
+        "unidade": "Quantitativo classificação",
+        "calculo": CalculoDoCriterioISHNaAreaDrenagem(),
+    },
+    {
+        "grupo": "Objetivos da Estação",
+        "criterio": "Localizada em Polos Nacionais de Irrigação ",
+        "unidade": "booleano",
+        "calculo": CalculoDoCriterioEmPoloDeIrrigacao(),
+    },
+    {
+        "grupo": "Objetivos da Estação",
         "criterio": "Trecho usado para navegação",
         "unidade": "booleano",
         "calculo": CalculoDoCriterioTrechoDeNavegacao(),
     },
-    {
-        "grupo": "Localização da Estação",
-        "criterio": "Localizada na região semiárida",
-        "unidade": "booleano",
-        "calculo": CalculoDoCriterioLocalizacaoSemiarido(),
-    },
+    # {
+    #     "grupo": "Localização da Estação",
+    #     "criterio": "Localizada na região semiárida",
+    #     "unidade": "booleano",
+    #     "calculo": CalculoDoCriterioLocalizacaoSemiarido(),
+    # },
     {
         "grupo": "Localização da Estação",
         "criterio": "Proximidade à estação da RHNR",

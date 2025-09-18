@@ -1,3 +1,4 @@
+from planrehidro_flu.core.models import EstacaoHidro
 from planrehidro_flu.core.parametros_multicriterio import parametros_multicriterio
 from planrehidro_flu.databases.hidro.enums import Responsavel, TipoEstacao
 from planrehidro_flu.databases.hidro.hidro_reader import HidroDWReader
@@ -12,36 +13,29 @@ def create_tables() -> None:
     Base.metadata.create_all(ENGINE)  # Create tables if they don't exist
 
 
-def armazena_inventario() -> None:
+def armazena_inventario(inventario: list[EstacaoHidro]) -> None:
+    insere_inventario(engine=ENGINE, inventario=inventario)
+
+
+def main() -> None:
+    create_tables()
     hidro = HidroDWReader()
     inventario = hidro.cria_inventario_estacao_hidro(
         tipo_estacao=TipoEstacao.FLUVIOMETRICA,
         operando=True,
         responsavel=Responsavel.ANA,
     )
-    insere_inventario(engine=ENGINE, inventario=inventario)
+    # armazena_inventario(inventario)
 
-
-def main() -> None:
-    create_tables()
-    # armazena_inventario()
-
-    # insere_criterio(
-    #     engine=ENGINE,
-    #     codigo_estacao=1234,
-    #     criterio_selecionado=parametros_multicriterio[0],
-    #     valor_criterio=57.4,
-    # )
-
-    insere_criterio(
-        engine=ENGINE,
-        codigo_estacao=2345,
-        criterio_selecionado=parametros_multicriterio[1],
-        valor_criterio=123.5,
-    )
-
-    # for estacao in inventario:
-    #     ...
+    for estacao in inventario:
+        for criterio in parametros_multicriterio:
+            valor_criterio = criterio["calculo"].calcular(estacao)
+            insere_criterio(
+                engine=ENGINE,
+                codigo_estacao=estacao.codigo,
+                criterio_selecionado=criterio,
+                valor_criterio=valor_criterio,
+            )
 
 
 if __name__ == "__main__":

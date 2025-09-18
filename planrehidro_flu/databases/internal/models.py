@@ -56,7 +56,7 @@ class ValorCriterio(Base):
     __tablename__ = "valor_criterio"
 
     codigo_estacao: Mapped[int] = mapped_column(primary_key=True)
-    criterio_id: Mapped[int] = mapped_column(ForeignKey("criterio.id"))
+    criterio_id: Mapped[int] = mapped_column(ForeignKey("criterio.id"), primary_key=True)
     valor: Mapped[float]
 
     criterio: Mapped["Criterio"] = relationship(back_populates="valores_criterio")

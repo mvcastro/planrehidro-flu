@@ -1,3 +1,4 @@
+import json
 from abc import ABC, abstractmethod
 from datetime import date, timedelta
 from functools import cache
@@ -13,6 +14,8 @@ from planrehidro_flu.core.params_funcoes_suporte import (
 from planrehidro_flu.databases.cplar.bd_cplar_reader import PostgresReader
 from planrehidro_flu.databases.hidro.hidro_reader import HidroDWReader
 
+CriterioOutput = float | bool | str
+
 
 @cache
 def create_cpalar_reader() -> PostgresReader:
@@ -26,26 +29,76 @@ def create_hidro_reader() -> HidroDWReader:
 
 class CalculoDoCriterio(ABC):
     @abstractmethod
-    def calcular(self, estacao: EstacaoHidro) -> float | bool | str: ...
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput: ...
 
 
 class CalculoDoCriterioAreaDrenagem(CalculoDoCriterio):
-    def calcular(self, estacao: EstacaoHidro) -> float | bool | str:
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
         if estacao.area_drenagem_km2 is None:
             raise ValueError("Área de drenagem não informada")
         return estacao.area_drenagem_km2
 
 
-class CalculoDoCriterioTrechoDeNavegacao(CalculoDoCriterio):
-    def calcular(self, estacao: EstacaoHidro) -> float | bool | str:
+class CalculoDoCriterioRelevanciaEspacial(CalculoDoCriterio):
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
+        if estacao.area_drenagem_km2 is None:
+            raise ValueError("Área de drenagem não informada")
+
+        cplar_reader = create_cpalar_reader()
+        estacoes_a_montante = cplar_reader.retorna_estacoes_de_montante(estacao.bacia)
+        if not estacoes_a_montante:
+            return 0.0
+
+        return len(estacoes_a_montante) / estacao.area_drenagem_km2
+
+
+class CalculoDoCriterioTrechoVulnerabilidadeCheias(CalculoDoCriterio):
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
         cplar_reader = create_cpalar_reader()
         estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(estacao.codigo)
-        trecho = cplar_reader.existe_trecho_navegavel(estacao_href.cobacia)
+        trecho_vulneravel_cheias = cplar_reader.retorna_trecho_vulneravel_a_cheias(
+            estacao_href.cobacia
+        )
+        return False if trecho_vulneravel_cheias is None else True
+
+
+class CalculoDoCriterioISHNaAreaDrenagem(CalculoDoCriterio):
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
+        cplar_reader = create_cpalar_reader()
+        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(estacao.codigo)
+        ish_cobacias = cplar_reader.retorna_classes_ish_por_area_drenagem(
+            estacao_href.cobacia
+        )
+
+        classes_ish = {"Alto": 0, "Baixo": 0, "Máximo": 0, "Médio": 0, "Mínimo": 0}
+
+        for ish in ish_cobacias:
+            if ish.brasil is None:
+                continue
+            classes_ish[ish.brasil] += 1
+
+        return json.dumps(classes_ish)
+
+
+class CalculoDoCriterioEmPoloDeIrrigacao(CalculoDoCriterio):
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
+        cplar_reader = create_cpalar_reader()
+        estacao_href = cplar_reader.retorno_polo_nacional_por_corrdenadas(
+            latitude=estacao.latitude, longitude=estacao.longitude
+        )
+        return False if estacao_href is None else True
+
+
+class CalculoDoCriterioTrechoDeNavegacao(CalculoDoCriterio):
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
+        cplar_reader = create_cpalar_reader()
+        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(estacao.codigo)
+        trecho = cplar_reader.retorna_trecho_navegavel(estacao_href.cobacia)
         return False if trecho is None else True
 
 
 class CalculoDoCriterioLocalizacaoSemiarido(CalculoDoCriterio):
-    def calcular(self, estacao: EstacaoHidro) -> float | bool | str:
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
         if estacao.latitude is None or estacao.longitude is None:
             raise ValueError("Coordenadas da estação não informadas")
         cplar_reader = create_cpalar_reader()
@@ -55,14 +108,14 @@ class CalculoDoCriterioLocalizacaoSemiarido(CalculoDoCriterio):
 
 
 class CalculoDoCriterioProximidadeRHNR(CalculoDoCriterio):
-    def calcular(self, estacao: EstacaoHidro) -> float | bool | str:
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
         cplar_reader = create_cpalar_reader()
         objetivos = cplar_reader.retorna_objetivos_rhnr(estacao.codigo)
         return ", ".join(objetivos) if objetivos else "Nenhum objetivo"
 
 
 class CalculoDoCriterioExtensaoDaSerie(CalculoDoCriterio):
-    def calcular(self, estacao: EstacaoHidro, **kwargs) -> float | bool | str:
+    def calcular(self, estacao: EstacaoHidro, **kwargs) -> CriterioOutput:
         hidro_reader = create_hidro_reader()
         serie_historica = hidro_reader.retorna_serie_historica(estacao.codigo)
         percentual_falhas = kwargs.get("percentual_falhas")
@@ -87,7 +140,7 @@ class CalculoDoCriterioExtensaoDaSerie(CalculoDoCriterio):
 
 
 class CalculoDoCriterioDescargaLiquida(CalculoDoCriterio):
-    def calcular(self, estacao: EstacaoHidro) -> float | bool | str:
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
         hidro_reader = create_hidro_reader()
         resumo_de_descarga = hidro_reader.retorna_resumo_de_descarga(
             codigo=estacao.codigo
@@ -96,12 +149,12 @@ class CalculoDoCriterioDescargaLiquida(CalculoDoCriterio):
 
 
 class CalculoDoCriterioTelemetrica(CalculoDoCriterio):
-    def calcular(self, estacao: EstacaoHidro) -> float | bool | str:
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
         return estacao.estacao_telemetrica
 
 
 class CalculoDoCriterioDesvioCurvaChave(CalculoDoCriterio):
-    def calcular(self, estacao: EstacaoHidro) -> float | bool | str:
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
         hidro_reader = create_hidro_reader()
         resumo_de_descarga = hidro_reader.retorna_resumo_de_descarga(
             codigo=estacao.codigo
@@ -112,7 +165,7 @@ class CalculoDoCriterioDesvioCurvaChave(CalculoDoCriterio):
 
 
 class CalculoDoCriterioTotalDeDescargasLiquidas(CalculoDoCriterio):
-    def calcular(self, estacao: EstacaoHidro) -> float | bool | str:
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
         hidro_reader = create_hidro_reader()
         resumo_de_descarga = hidro_reader.retorna_resumo_de_descarga(
             codigo=estacao.codigo
@@ -122,7 +175,7 @@ class CalculoDoCriterioTotalDeDescargasLiquidas(CalculoDoCriterio):
 
 
 class CalculoDoCriterioDescargaLiquidaAnual(CalculoDoCriterio):
-    def calcular(self, estacao: EstacaoHidro) -> float | bool | str:
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
         hidro_reader = create_hidro_reader()
         resumo_de_descarga = hidro_reader.retorna_resumo_de_descarga(
             codigo=estacao.codigo

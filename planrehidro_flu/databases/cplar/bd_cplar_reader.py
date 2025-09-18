@@ -1,12 +1,29 @@
 import os
+from typing import Sequence, cast
+
 import geopandas as gpd
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session
 
-from planrehidro_flu.databases.cplar.models import EstacaoComObjetivos, EstacaoHidroRef, TrechoNavegavel
+from planrehidro_flu.databases.cplar.models import (
+    EstacaoComObjetivos,
+    EstacaoFlu,
+    EstacaoHidroRef,
+    IndiceSegurancaHidrica,
+    PoloNacional,
+    TrechoNavegavel,
+    TrechoVulneravelACheias,
+)
 
 load_dotenv()
+
+
+def cobacia_to_cocursodag(cobacia: str) -> str:
+    for idx, char in enumerate(cobacia[::-1]):
+        if int(char) % 2 == 0:
+            return cobacia[:-idx]
+    raise ValueError("Cobacia inválido")
 
 
 class PostgresReader:
@@ -35,16 +52,23 @@ class PostgresReader:
                 f"Estação Hidrorreferenciada com código {codigo_estacao} não encontrada."
             )
         return response
-    
-    def existe_trecho_navegavel(self, cobacia: str) -> TrechoNavegavel | None:
+
+    def retorna_trecho_navegavel(self, cobacia: str) -> TrechoNavegavel | None:
         with Session(self.engine) as session:
-            query = select(TrechoNavegavel).where(
-                TrechoNavegavel.cobacia == cobacia
+            query = select(TrechoNavegavel).where(TrechoNavegavel.cobacia == cobacia)
+            response = session.execute(query).scalar()
+        return response
+
+    def retorna_trecho_vulneravel_a_cheias(
+        self, cobacia: str
+    ) -> TrechoVulneravelACheias | None:
+        with Session(self.engine) as session:
+            query = select(TrechoVulneravelACheias).where(
+                TrechoVulneravelACheias.cobacia == cobacia
             )
             response = session.execute(query).scalar()
-
         return response
-    
+
     def retorna_geometria_semiarido(self) -> gpd.GeoSeries:
         query = "SELECT * FROM geoft.semiarido_2024"
         gdf = gpd.read_postgis(query, self.engine, geom_col="geom")
@@ -62,3 +86,53 @@ class PostgresReader:
                 f"Estação com código {codigo_estacao} não possui objetivos na RHNR."
             )
         return [obj.criterio for obj in response]
+
+    def retorna_estacoes_de_montante(self, cobacia: str) -> list[EstacaoFlu]:
+        cocursodag = cobacia_to_cocursodag(cobacia)
+
+        query = text("""
+            WITH area_drenagem AS (
+                SELECT ST_union(geom) AS geom
+                FROM geoft.bho_2013_areacontribuicao USING (cotrecho)
+                WHERE cobacia >= :cobacia AND cocursodag LIKE ':cocursodag%%'
+            )
+            SELECT * FROM estacoes.estacao_flu
+            INNER JOIN area_drenagem
+            ON ST_Intersects(estacao_flu.geom, area_drenagem.geom)
+        """)
+
+        with Session(self.engine) as session:
+            response = (
+                session.execute(query, {"cobacia": cobacia, "cocursodag": cocursodag})
+                .scalars()
+                .all()
+            )
+
+        return cast(list[EstacaoFlu], response)
+
+    def retorno_polo_nacional_por_corrdenadas(
+        self, latitude: float, longitude: float
+    ) -> PoloNacional | None:
+        query = text("""
+            SELECT * FROM geoft.polos_nacionais_2021
+            WHERE ST_Intersects(geom, ST_Point(longitude, latitude, 4674)) 
+        """)
+
+        with Session(self.engine) as session:
+            response = session.execute(query).scalar()
+
+        return cast(PoloNacional, response)
+
+    def retorna_classes_ish_por_area_drenagem(
+        self, cobacia: str
+    ) -> Sequence[IndiceSegurancaHidrica]:
+        cocursodag = cobacia_to_cocursodag(cobacia)
+
+        query = select(IndiceSegurancaHidrica).where(
+            IndiceSegurancaHidrica.cobacia >= cobacia,
+            IndiceSegurancaHidrica.cobacia.like(f"{cocursodag}%%"),
+        )
+        with Session(self.engine) as session:
+            response = session.execute(query).scalars().all()
+
+        return response
