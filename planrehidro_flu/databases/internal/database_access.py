@@ -1,13 +1,11 @@
+from typing import Sequence
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 
 from planrehidro_flu.core.models import EstacaoHidro
-from planrehidro_flu.core.parametros_multicriterio import CriterioSelecionado
 from planrehidro_flu.databases.internal.models import (
-    Criterio,
-    GrupoCriterios,
-    InventarioEstacoesFluAna,
-    ValorCriterio,
+    CriteriosDaEstacao,
+    InventarioEstacaoFluAna,
 )
 
 
@@ -15,60 +13,29 @@ def insere_inventario(engine: Engine, inventario: list[EstacaoHidro]) -> None:
     """Insert a list of EstacaoHidro into the database."""
     with Session(engine) as session:
         inventario_flu_ana = [
-            InventarioEstacoesFluAna(**estacao.model_dump()) for estacao in inventario
+            InventarioEstacaoFluAna(**estacao.model_dump()) for estacao in inventario
         ]
         session.add_all(inventario_flu_ana)
         session.commit()
 
 
-def insere_criterio(
-    engine: Engine,
-    codigo_estacao: int,
-    criterio_selecionado: CriterioSelecionado,
-    valor_criterio: int | float | str | bool,
+def insere_criterios_da_estacao(
+    engine: Engine, valores_criterios: CriteriosDaEstacao
 ) -> None:
     with Session(engine) as session:
-        grupo_obj = GrupoCriterios(grupo=criterio_selecionado["grupo"])
-        grupo_cadastrado = session.execute(
-            select(GrupoCriterios).where(GrupoCriterios.grupo == grupo_obj.grupo)
-        ).scalar()
-        
-        if not grupo_cadastrado:
-            session.add(grupo_obj)
-            session.commit()
-            session.refresh(grupo_obj)
-        else:
-            grupo_obj = grupo_cadastrado
-        
-        criterio_obj = Criterio(
-            grupo_id=grupo_obj.id,
-            criterio=criterio_selecionado["criterio"],
-            unidade=criterio_selecionado["unidade"], 
-        )
-        
-        criterio_cadastrado = session.execute(
-            select(Criterio).where(Criterio.criterio == criterio_obj.criterio)
-        ).scalar()
-            
-        if not criterio_cadastrado:
-            session.add(criterio_obj)
-            session.commit()
-            session.refresh(criterio_obj)
-        else:
-            criterio_obj = criterio_cadastrado
-        
-        if type(valor_criterio) in (int, float, bool):
-            valor_criterio_obj = ValorCriterio(
-                codigo_estacao=codigo_estacao,
-                criterio_id=criterio_obj.id,
-                valor_numero=valor_criterio
-            )
-        else:
-            valor_criterio_obj = ValorCriterio(
-                codigo_estacao=codigo_estacao,
-                criterio_id=criterio_obj.id,
-                valor_string=valor_criterio
-            )
-
-        session.add(valor_criterio_obj)
+        session.add(valores_criterios)
         session.commit()
+
+
+def retorna_estacoes_processadas(engine: Engine) -> list[int]:
+    with Session(engine) as session:
+        query = select(CriteriosDaEstacao).order_by(
+            CriteriosDaEstacao.codigo_estacao
+        )
+        response = session.execute(query).scalars().all()
+        return [estacao.codigo_estacao for estacao in response]
+    
+def retorna_criterios_das_estacoes(engine: Engine) -> Sequence[CriteriosDaEstacao]:
+    with Session(engine) as session:
+        response = session.execute(select(CriteriosDaEstacao)).scalars().all()
+        return response

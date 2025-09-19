@@ -1,12 +1,15 @@
+from pydantic import BaseModel
+
 from planrehidro_flu.core.models import EstacaoHidro
 from planrehidro_flu.core.parametros_multicriterio import parametros_multicriterio
 from planrehidro_flu.databases.hidro.enums import Responsavel, TipoEstacao
 from planrehidro_flu.databases.hidro.hidro_reader import HidroDWReader
 from planrehidro_flu.databases.internal.database_access import (
-    insere_criterio,
+    insere_criterios_da_estacao,
     insere_inventario,
+    retorna_estacoes_processadas,
 )
-from planrehidro_flu.databases.internal.models import ENGINE, Base
+from planrehidro_flu.databases.internal.models import ENGINE, Base, CriteriosDaEstacao
 
 
 def create_tables() -> None:
@@ -27,17 +30,25 @@ def main() -> None:
     )
     # armazena_inventario(inventario)
 
-    for estacao in inventario[:3]:
-        print(f'Processando critérios para a estação {estacao.codigo}...')
-        for criterio in parametros_multicriterio[10:11]:
-            print(f'Critério: {criterio["criterio"]}')
-            valor_criterio = criterio["calculo"].calcular(estacao)
-            insere_criterio(
-                engine=ENGINE,
-                codigo_estacao=estacao.codigo,
-                criterio_selecionado=criterio,
-                valor_criterio=valor_criterio,
+    estacoes_processadas = retorna_estacoes_processadas(engine=ENGINE)
+    estacoes_nao_processadas = [
+        estacao for estacao in inventario if estacao.codigo not in estacoes_processadas
+    ]
+
+    for estacao in estacoes_nao_processadas:
+        try:
+            valores_criterios = {}
+            valores_criterios["codigo_estacao"] = estacao.codigo
+
+            for criterio in parametros_multicriterio:
+                valor_criterio = criterio["calculo"].calcular(estacao)
+                valores_criterios[criterio["nome_campo"]] = valor_criterio  # type: ignore
+
+            insere_criterios_da_estacao(
+                engine=ENGINE, valores_criterios=CriteriosDaEstacao(**valores_criterios)
             )
+        except Exception as e:
+            print(f"Erro ao processar critérios para a estação {estacao.codigo}: {e}")
 
 
 if __name__ == "__main__":

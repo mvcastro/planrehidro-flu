@@ -12,7 +12,7 @@ from planrehidro_flu.core.params_funcoes_suporte import (
 from planrehidro_flu.databases.cplar.bd_cplar_reader import PostgresReader
 from planrehidro_flu.databases.hidro.hidro_reader import HidroDWReader
 
-CriterioOutput = float | bool | str
+CriterioOutput = int | float | bool | str
 
 
 @cache

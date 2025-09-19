@@ -94,10 +94,6 @@ class PostgresReader:
             )
             response = session.execute(query).scalars().all()
 
-        if not response:
-            raise ValueError(
-                f"Estação com código {codigo_estacao} não possui objetivos na RHNR."
-            )
         return [obj.criterio for obj in response]
 
     def retorna_estacoes_de_montante(self, cobacia: str) -> list[EstacaoFlu]:

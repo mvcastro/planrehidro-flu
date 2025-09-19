@@ -12,7 +12,7 @@ ENGINE = create_engine(f"sqlite:///{Path(__file__).parent / 'database.db'}")
 class Base(DeclarativeBase): ...
 
 
-class InventarioEstacoesFluAna(Base):
+class InventarioEstacaoFluAna(Base):
     __tablename__ = "inventario_estacoes_flu_ana"
 
     codigo: Mapped[int] = mapped_column(primary_key=True)
@@ -40,21 +40,30 @@ class GrupoCriterios(Base):
 
 
 class DescricaoCriterio(Base):
-    __tablename__ = "criterio"
+    __tablename__ = "descricao_criterio"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     grupo_id: Mapped[int] = mapped_column(ForeignKey("grupo_criterios.id"))
-    criterio: Mapped[str] = mapped_column(unique=True)
+    nome_campo: Mapped[str] = mapped_column(unique=True)
+    descricao_criterio: Mapped[str] = mapped_column(unique=True)
     unidade: Mapped[str]
 
 
-class ValorCriterio(Base):
+class CriteriosDaEstacao(Base):
     __tablename__ = "valor_criterio"
 
     codigo_estacao: Mapped[int] = mapped_column(primary_key=True)
-    criterio_id: Mapped[int] = mapped_column(
-        ForeignKey("criterio.id"), primary_key=True
-    )
-    valor_numero: Mapped[float] = mapped_column(nullable=True)
-    valor_string: Mapped[str] = mapped_column(nullable=True)
+    area_dren: Mapped[float]
+    espacial: Mapped[float]
+    cheias: Mapped[bool]
+    ish: Mapped[str]
+    semiarido: Mapped[bool]
+    irrigacao: Mapped[bool]
+    rhnr: Mapped[str]
+    navegacao: Mapped[bool]
+    extensao: Mapped[int]
+    desv_cchave: Mapped[float]
+    med_desc: Mapped[float]
 
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}

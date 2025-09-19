@@ -22,9 +22,26 @@ Grupo = Literal[
 ]
 
 
+NomeCampo = Literal[
+    "codigo_estacao",
+    "area_dren",
+    "espacial",
+    "cheias",
+    "ish",
+    "semiarido",
+    "irrigacao",
+    "rhnr",
+    "navegacao",
+    "extensao",
+    "desv_cchave",
+    "med_desc",
+]
+
+
 class CriterioSelecionado(TypedDict):
     grupo: Grupo
-    criterio: str
+    nome_campo: NomeCampo
+    descricao: str
     unidade: str
     calculo: CalculoDoCriterio
 
@@ -32,67 +49,78 @@ class CriterioSelecionado(TypedDict):
 parametros_multicriterio: list[CriterioSelecionado] = [
     {
         "grupo": "Localização da Estação",
-        "criterio": "Área de drenagem da bacia à montante",
+        "nome_campo": "area_dren",
+        "descricao": "Área de drenagem da bacia à montante",
         "unidade": "km²",
         "calculo": CalculoDoCriterioAreaDrenagem(),
     },
     {
         "grupo": "Localização da Estação",
-        "criterio": "Relevância espacial",
+        "nome_campo": "espacial",
+        "descricao": "Relevância espacial",
         "unidade": "Nº estações / km²",
         "calculo": CalculoDoCriterioRelevanciaEspacial(),
     },
     {
         "grupo": "Objetivos da Estação",
-        "criterio": "Trecho com vulnerabilidade a cheias",
+        "nome_campo": "cheias",
+        "descricao": "Trecho com vulnerabilidade a cheias",
         "unidade": "booleano",
         "calculo": CalculoDoCriterioTrechoVulnerabilidadeCheias(),
     },
     {
         "grupo": "Objetivos da Estação",
-        "criterio": "ISH na área de drenagem",
+        "nome_campo": "ish",
+        "descricao": "ISH na área de drenagem",
         "unidade": "Quantitativo classificação",
         "calculo": CalculoDoCriterioISHNaAreaDrenagem(),
     },
     {
-        "grupo": "Objetivos da Estação",
-        "criterio": "Localizada em Polos Nacionais de Irrigação ",
-        "unidade": "booleano",
-        "calculo": CalculoDoCriterioEmPoloDeIrrigacao(),
-    },
-    {
-        "grupo": "Objetivos da Estação",
-        "criterio": "Trecho usado para navegação",
-        "unidade": "booleano",
-        "calculo": CalculoDoCriterioTrechoDeNavegacao(),
-    },
-    {
         "grupo": "Localização da Estação",
-        "criterio": "Localizada na região semiárida",
+        "nome_campo": "semiarido",
+        "descricao": "Localizada na região semiárida",
         "unidade": "booleano",
         "calculo": CalculoDoCriterioLocalizacaoSemiarido(),
     },
     {
-        "grupo": "Localização da Estação",
-        "criterio": "Proximidade à estação da RHNR",
+        "grupo": "Objetivos da Estação",
+        "nome_campo": "irrigacao",
+        "descricao": "Localizada em Polos Nacionais de Irrigação",
         "unidade": "booleano",
+        "calculo": CalculoDoCriterioEmPoloDeIrrigacao(),
+    },
+    {
+        "grupo": "Localização da Estação",
+        "nome_campo": "rhnr",
+        "descricao": "Proximidade à estação da RHNR",
+        "unidade": "objetivos da RHRN",
         "calculo": CalculoDoCriterioProximidadeRHNR(),
     },
     {
+        "grupo": "Objetivos da Estação",
+        "nome_campo": "navegacao",
+        "descricao": "Trecho usado para navegação",
+        "unidade": "booleano",
+        "calculo": CalculoDoCriterioTrechoDeNavegacao(),
+    },
+    {
         "grupo": "Qualidade dos Dados da Estação",
-        "criterio": "Extensão da série de dados",
+        "nome_campo": "extensao",
+        "descricao": "Extensão da série de dados",
         "unidade": "anos",
         "calculo": CalculoDoCriterioExtensaoDaSerie(),
     },
     {
         "grupo": "Qualidade dos Dados da Estação",
-        "criterio": "Desvio da Curva-Chave",
+        "nome_campo": "desv_cchave",
+        "descricao": "Desvio da Curva-Chave",
         "unidade": "percentual (%)",
         "calculo": CalculoDoCriterioDesvioCurvaChave(),
     },
     {
         "grupo": "Qualidade dos Dados da Estação",
-        "criterio": "Medições de descarga líquida / Ano",
+        "nome_campo": "med_desc",
+        "descricao": "Medições de descarga líquida / Ano",
         "unidade": "medições/ano",
         "calculo": CalculoDoCriterioDescargaLiquidaAnual(),
     },
