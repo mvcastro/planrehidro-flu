@@ -33,11 +33,11 @@ class ResumoDeDescarga(BaseModel):
     nivel_consistencia: Literal[1, 2]
     data: date
     cota: float
-    vazao: PositiveFloat
-    area_molhada: PositiveFloat
-    largura: PositiveFloat
-    vel_media: PositiveFloat
-    profundidade: PositiveFloat
+    vazao: None | float
+    area_molhada: None |  float
+    largura: None |  float
+    vel_media: None |  float
+    profundidade: None |  float
 
 
 class CurvaDeDescarga(BaseModel):

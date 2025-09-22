@@ -12,7 +12,7 @@ from planrehidro_flu.core.params_funcoes_suporte import (
 from planrehidro_flu.databases.cplar.bd_cplar_reader import PostgresReader
 from planrehidro_flu.databases.hidro.hidro_reader import HidroDWReader
 
-CriterioOutput = int | float | bool | str
+CriterioOutput = int | float | bool | str | None
 
 
 @cache
@@ -50,7 +50,7 @@ class CalculoDoCriterioRelevanciaEspacial(CalculoDoCriterio):
         if not estacoes_a_montante:
             return 0.0
 
-        return len(estacoes_a_montante) / estacao.area_drenagem_km2
+        return estacao.area_drenagem_km2 / len(estacoes_a_montante)
 
 
 class CalculoDoCriterioTrechoVulnerabilidadeCheias(CalculoDoCriterio):
@@ -123,7 +123,11 @@ class CalculoDoCriterioProximidadeRHNR(CalculoDoCriterio):
     def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
         cplar_reader = create_cpalar_reader()
         objetivos = cplar_reader.retorna_objetivos_rhnr(estacao.codigo)
-        return ", ".join(objetivos) if objetivos else "Nenhum objetivo"
+        if not objetivos:
+            return "Nenhum objetivo"
+
+        objetivos_dict = {obj.criterio: obj.prop_areas for obj in objetivos}
+        return json.dumps(objetivos_dict, ensure_ascii=False)
 
 
 class CalculoDoCriterioExtensaoDaSerie(CalculoDoCriterio):
@@ -134,7 +138,10 @@ class CalculoDoCriterioExtensaoDaSerie(CalculoDoCriterio):
         limiar_falhas = percentual_falhas / 100 if percentual_falhas else 0.1
 
         if not serie_historica:
-            raise ValueError("Nenhum dado disponível para a estação")
+            print(
+                f"Nenhum dado da série histórica disponível para a estação {estacao.codigo}"
+            )
+            return 0
 
         df_serie = pivot_cota_to_dataframe(serie_historica)
         anos_disponiveis = df_serie.index.year.value_counts()  # type: ignore
@@ -172,6 +179,20 @@ class CalculoDoCriterioDesvioCurvaChave(CalculoDoCriterio):
         )
         curva_de_descarga = hidro_reader.retorna_curva_de_descarga(estacao.codigo)
 
+        if not resumo_de_descarga:
+            print(
+                f"Nenhum medição de descarga disponível para a estação {estacao.codigo}"
+            )
+            print("Não é possível calcular o desvio da curva chave -> Retornando nulo")
+            return None
+
+        if not curva_de_descarga:
+            print(
+                f"Nenhuma curva de descarga disponível para a estação {estacao.codigo}"
+            )
+            print("Não é possível calcular o desvio da curva chave -> Retornando nulo")
+            return None
+
         return calcula_desvio_medio_curva_chave(resumo_de_descarga, curva_de_descarga)
 
 
@@ -191,5 +212,15 @@ class CalculoDoCriterioDescargaLiquidaAnual(CalculoDoCriterio):
         resumo_de_descarga = hidro_reader.retorna_resumo_de_descarga(
             codigo=estacao.codigo
         )
+
+        if not resumo_de_descarga:
+            print(
+                f"Nenhum medição de descarga disponível para a estação {estacao.codigo}"
+            )
+            print(
+                "Não é possível calcular a média anual do número de descargas líquidas -> Retornando 0.0!"
+            )
+            return 0.0
+
         estats = retorna_estatisticas_descarga_liquida(resumo_de_descarga)
         return estats[1]

@@ -87,14 +87,13 @@ class PostgresReader:
 
         return False if response is None else True
 
-    def retorna_objetivos_rhnr(self, codigo_estacao: int) -> list[str]:
+    def retorna_objetivos_rhnr(self, codigo_estacao: int) -> Sequence[EstacaoComObjetivos]:
         with Session(self.engine) as session:
             query = select(EstacaoComObjetivos).where(
                 EstacaoComObjetivos.codigo_estacao == codigo_estacao
             )
             response = session.execute(query).scalars().all()
-
-        return [obj.criterio for obj in response]
+        return response
 
     def retorna_estacoes_de_montante(self, cobacia: str) -> list[EstacaoFlu]:
         cocursodag = cobacia_to_cocursodag(cobacia)

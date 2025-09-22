@@ -189,11 +189,11 @@ class ResumoDescarga(Base):
     NivelConsistencia: Mapped[int]
     Data: Mapped[date]
     Cota: Mapped[float]
-    Vazao: Mapped[float]
-    AreaMolhada: Mapped[float]
-    Largura: Mapped[float]
-    VelMedia: Mapped[float]
-    Profundidade: Mapped[float]
+    Vazao: Mapped[float | None]
+    AreaMolhada: Mapped[float | None]
+    Largura: Mapped[float | None]
+    VelMedia: Mapped[float | None]
+    Profundidade: Mapped[float | None]
 
 
 class CurvaDescarga(Base):

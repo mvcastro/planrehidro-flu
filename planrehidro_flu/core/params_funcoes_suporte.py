@@ -1,5 +1,5 @@
 from typing import Callable, Sequence
-
+import warnings
 import numpy as np
 import pandas as pd
 
@@ -86,6 +86,11 @@ def calcula_desvio_medio_curva_chave(
     desvios: list[float] = []
 
     for descarga in resumo_descarga:
+        
+        if descarga.vazao is None or descarga.vazao == 0.0:
+            warnings.warn('Descarga no resumo de descarga encontrada com vazão nula!')
+            continue
+        
         curva_descarga = [
             curva
             for curva in curvas_descarga
@@ -106,8 +111,10 @@ def calcula_desvio_medio_curva_chave(
             curva_selecionada.coef_n,
         ]
 
-        if not all(coeficientes):
-            raise ValueError("Coeficientes inválidos para equação de curva chave")
+        if any([coef is None for coef in coeficientes]):
+            raise ValueError(
+                f"Coeficientes inválidos para equação de curva chave: a={curva_selecionada.coef_a}, H0={curva_selecionada.coef_h0}, N={curva_selecionada.coef_n}"
+            )
 
         equacao = retorna_equacao_curva_chave(*coeficientes)  # type: ignore
         descarga_calculada = equacao(descarga.cota / 100)
