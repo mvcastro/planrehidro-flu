@@ -48,6 +48,9 @@ def retorna_criterios_por_rh(engine: Engine) -> Sequence[dict]:
     with Session(engine) as session:
         stmt = select(
             CriteriosDaEstacao.codigo_estacao,
+            InventarioEstacaoFluAna.nome,
+            InventarioEstacaoFluAna.latitude,
+            InventarioEstacaoFluAna.longitude,
             CriteriosDaEstacao.area_dren,
             CriteriosDaEstacao.espacial,
             CriteriosDaEstacao.cheias,
@@ -59,10 +62,12 @@ def retorna_criterios_por_rh(engine: Engine) -> Sequence[dict]:
             CriteriosDaEstacao.extensao,
             CriteriosDaEstacao.desv_cchave,
             CriteriosDaEstacao.med_desc,
+            CriteriosDaEstacao.est_energia,
             RegiaoHidrografica.rhi_nm.label("nome_rh"),
         ).where(
             CriteriosDaEstacao.codigo_estacao == EstacaoFluPorRH.codigo,
             EstacaoFluPorRH.rhi_cd == RegiaoHidrografica.rhi_cd,
+            CriteriosDaEstacao.codigo_estacao == InventarioEstacaoFluAna.codigo,
         )
         response = session.execute(stmt).all()
         return [dict(row._mapping) for row in response]
@@ -90,7 +95,7 @@ def update_criterio_da_estacao(
     engine: Engine,
     codigo_estacao: int,
     campo: NomeCampo,
-    valor: int | float | bool | str,
+    valor: int | float | bool | str | None,
 ) -> None:
     with Session(engine) as session:
         session.execute(

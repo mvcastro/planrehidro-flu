@@ -55,4 +55,3 @@ def get_data_dictionary() -> pd.DataFrame:
 engine = get_engine()
 df_criterios_rh = get_dados_criterios_por_rh(engine)
 df_dicionario = get_data_dictionary()
-inventario_estacoes = get_inventario(engine)

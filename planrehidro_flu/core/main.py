@@ -1,3 +1,5 @@
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from tqdm import tqdm
 
 from planrehidro_flu.core.models import EstacaoHidro
@@ -13,7 +15,13 @@ from planrehidro_flu.databases.internal.database_access import (
     retorna_estacoes_processadas,
     update_criterio_da_estacao,
 )
-from planrehidro_flu.databases.internal.models import ENGINE, Base, CriteriosDaEstacao
+from planrehidro_flu.databases.internal.models import (
+    ENGINE,
+    Base,
+    CriteriosDaEstacao,
+    DescricaoCriterio,
+    GrupoCriterios,
+)
 
 
 def create_tables() -> None:
@@ -24,15 +32,39 @@ def armazena_inventario(inventario: list[EstacaoHidro]) -> None:
     insere_inventario(engine=ENGINE, inventario=inventario)
 
 
-def main() -> None:
-    create_tables()
+def populate_info_tables() -> None:
+    with Session(ENGINE) as session:
+        for criterio in parametros_multicriterio:
+            grupo_existente = session.execute(
+                select(GrupoCriterios).where(GrupoCriterios.grupo == criterio["grupo"])
+            ).scalar()
+
+            if grupo_existente is None:
+                grupo = GrupoCriterios(grupo=criterio["grupo"])
+                session.add(grupo)
+                session.commit()
+            else:
+                grupo = grupo_existente
+
+            session.refresh(grupo)
+
+            descricao_criterio = DescricaoCriterio(
+                grupo_id=grupo.id,
+                nome_campo=criterio["nome_campo"],
+                descricao_criterio=criterio["descricao"],
+                unidade=criterio["unidade"],
+            )
+            session.add(descricao_criterio)
+            session.commit()
+
+
+def processa_criterios() -> None:
     hidro = HidroDWReader()
     inventario = hidro.cria_inventario_estacao_hidro(
         tipo_estacao=TipoEstacao.FLUVIOMETRICA,
         operando=True,
         responsavel=Responsavel.ANA,
     )
-    # armazena_inventario(inventario)
 
     estacoes_processadas = retorna_estacoes_processadas(engine=ENGINE)
     estacoes_nao_processadas = [
@@ -53,7 +85,6 @@ def main() -> None:
             )
         except Exception as e:
             print(f"Erro ao processar critérios para a estação {estacao.codigo}: {e}")
-            print(f"{criterio['nome_campo']}")
 
 
 def update_field(criterio: CriterioSelecionado):
@@ -85,5 +116,4 @@ def update_field(criterio: CriterioSelecionado):
 
 
 if __name__ == "__main__":
-    # create_tables()
-    main()
+    populate_info_tables()

@@ -11,6 +11,7 @@ from planrehidro_flu.databases.cplar.models import (
     EstacaoFlu,
     EstacaoHidroRef,
     IndiceSegurancaHidrica,
+    IndiceSegurancaHidricaNumerico,
     PoloNacional,
     TrechoNavegavel,
     TrechoVulneravelACheias,
@@ -22,8 +23,18 @@ load_dotenv()
 def cobacia_to_cocursodag(cobacia: str) -> str:
     for idx, char in enumerate(cobacia[::-1]):
         if int(char) % 2 == 0:
+            if idx == 0:
+                return cobacia
             return cobacia[:-idx]
     raise ValueError("Cobacia inválido")
+
+
+def localiza_cocursodags_de_jusante(cobacia: str) -> list[str]:
+    cobacias = []
+    for idx, _ in enumerate(cobacia, start=1):
+        if int(cobacia[:idx]) % 2 == 0:
+            cobacias.append(cobacia[:idx])
+    return cobacias
 
 
 class PostgresReader:
@@ -52,6 +63,42 @@ class PostgresReader:
                 f"Estação Hidrorreferenciada com código {codigo_estacao} não encontrada."
             )
         return response
+
+    def retorna_estacoes_hidrorreferenciadas_de_montante(
+        self, cobacia: str, area_drenagem: float, limiar_proporcao: float = 0.1
+    ) -> list[EstacaoHidroRef]:
+        cocursodag = cobacia_to_cocursodag(cobacia=cobacia)
+        with Session(self.engine) as session:
+            query = select(EstacaoHidroRef).where(
+                EstacaoHidroRef.cobacia > cobacia,
+                EstacaoHidroRef.cocursodag.like(f"{cocursodag}%%"),
+            )
+            response = session.execute(query).scalars().all()
+
+        return [
+            estacao
+            for estacao in response
+            if estacao.area_drenagem is not None
+            and abs(1 - (estacao.area_drenagem / area_drenagem)) <= limiar_proporcao
+        ]
+
+    def retorna_estacoes_hidrorreferenciadas_de_jusante(
+        self, cobacia: str, area_drenagem: float, limiar_proporcao: float = 0.1
+    ) -> list[EstacaoHidroRef]:
+        cocursodags = localiza_cocursodags_de_jusante(cobacia=cobacia)
+        with Session(self.engine) as session:
+            query = select(EstacaoHidroRef).where(
+                EstacaoHidroRef.cobacia < cobacia,
+                EstacaoHidroRef.cocursodag.in_(cocursodags),
+            )
+            response = session.execute(query).scalars().all()
+
+        return [
+            estacao
+            for estacao in response
+            if estacao.area_drenagem is not None
+            and abs(1 - (estacao.area_drenagem / area_drenagem)) <= limiar_proporcao
+        ]
 
     def retorna_trecho_navegavel(self, cobacia: str) -> TrechoNavegavel | None:
         with Session(self.engine) as session:
@@ -87,7 +134,9 @@ class PostgresReader:
 
         return False if response is None else True
 
-    def retorna_objetivos_rhnr(self, codigo_estacao: int) -> Sequence[EstacaoComObjetivos]:
+    def retorna_objetivos_rhnr(
+        self, codigo_estacao: int
+    ) -> Sequence[EstacaoComObjetivos]:
         with Session(self.engine) as session:
             query = select(EstacaoComObjetivos).where(
                 EstacaoComObjetivos.codigo_estacao == codigo_estacao
@@ -142,6 +191,20 @@ class PostgresReader:
         query = select(IndiceSegurancaHidrica).where(
             IndiceSegurancaHidrica.cobacia >= cobacia,
             IndiceSegurancaHidrica.cobacia.like(f"{cocursodag}%%"),
+        )
+        with Session(self.engine) as session:
+            response = session.execute(query).scalars().all()
+
+        return response
+
+    def retorna_classes_ish_numerico_por_area_drenagem(
+        self, cobacia: str
+    ) -> Sequence[IndiceSegurancaHidricaNumerico]:
+        cocursodag = cobacia_to_cocursodag(cobacia)
+
+        query = select(IndiceSegurancaHidricaNumerico).where(
+            IndiceSegurancaHidricaNumerico.ire_cobacia >= cobacia,
+            IndiceSegurancaHidricaNumerico.ire_cobacia.like(f"{cocursodag}%%"),
         )
         with Session(self.engine) as session:
             response = session.execute(query).scalars().all()

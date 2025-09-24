@@ -21,6 +21,7 @@ streamlit = "^1.49.1"
 plotly = "^6.3.0"
 streamlit-folium = "^0.25.1"
 tqdm = "^4.67.1"
+types-tqdm = "^4.67.0.20250809"
 
 
 [tool.poetry.group.dev.dependencies]

@@ -63,10 +63,11 @@ class CriteriosDaEstacao(Base):
     extensao: Mapped[int]
     desv_cchave: Mapped[float] = mapped_column(nullable=True)
     med_desc: Mapped[float]
+    est_energia: Mapped[bool] = mapped_column(nullable=True)
+    # est_rhnr: Mapped[bool] = mapped_column(nullable=True)
 
     def to_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-
 
 
 class RegiaoHidrografica(Base):

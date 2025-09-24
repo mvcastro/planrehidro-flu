@@ -49,6 +49,13 @@ class HidroDWReader:
             query = session.query(Estacao)
             return query.all()
 
+    def retorna_estacoes_por_codigo(self, codigos: Sequence[int]) -> Sequence[Estacao]:
+        with Session(self.engine) as session:
+            response = session.execute(
+                select(Estacao).where(Estacao.Codigo.in_(codigos))
+            ).scalars().all()
+            return response
+
     def retorna_inventario_por_bacia(
         self, bacia: BaciaEnum, tipo_estacao: TipoEstacao, operando: Literal[0, 1]
     ) -> Sequence[Estacao]:
@@ -224,7 +231,7 @@ class HidroDWReader:
     ) -> Sequence[PivotCota]:
         query = select(PivotCota).where(
             PivotCota.EstacaoCodigo == codigo,
-            PivotCota.NivelConsistencia == nivel_consistencia.value
+            PivotCota.NivelConsistencia == nivel_consistencia.value,
         )
         with Session(self.engine) as session:
             response = session.execute(query).scalars().all()

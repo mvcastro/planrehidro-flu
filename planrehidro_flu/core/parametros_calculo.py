@@ -67,26 +67,34 @@ class CalculoDoCriterioISHNaAreaDrenagem(CalculoDoCriterio):
     def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
         cplar_reader = create_cpalar_reader()
         estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(estacao.codigo)
-        ish_cobacias = cplar_reader.retorna_classes_ish_por_area_drenagem(
+        ish_cobacias = cplar_reader.retorna_classes_ish_numerico_por_area_drenagem(
             estacao_href.cobacia
         )
+        if not ish_cobacias:
+            raise ValueError(
+                f"Ottobacias não encontradas para a estação: {estacao.codigo}"
+            )
+        area_total = sum([ish.ire_nuareacont for ish in ish_cobacias])
+        ish_ponderado = (
+            sum([ish.ire_cs_ishfinal * ish.ire_nuareacont for ish in ish_cobacias])
+            / area_total
+        )
+        return self.classifica_resultado(ish_ponderado)
 
-        classes_ish = {
-            "Alto": 0.0,
-            "Baixo": 0.0,
-            "Máximo": 0.0,
-            "Médio": 0.0,
-            "Mínimo": 0.0,
-        }
-
-        for ish in ish_cobacias:
-            if ish.brasil is None:
-                continue
-            classes_ish[ish.brasil] += ish.nuareacont
-
-        classes_ish = {classe: round(valor, 1) for classe, valor in classes_ish.items()}
-
-        return json.dumps(classes_ish, ensure_ascii=False)
+    def classifica_resultado(self, valor_ish: float) -> str:
+        if 1.0 <= valor_ish < 1.5:
+            return "Mínimo"
+        if 1.5 <= valor_ish < 2.5:
+            return "Baixo"
+        if 2.5 <= valor_ish < 3.5:
+            return "Médio"
+        if 3.5 <= valor_ish < 4.5:
+            return "Alto"
+        if valor_ish >= 4.5:
+            return "Máximo"
+        raise ValueError(
+            f"Valor de ISH inválido (válido entre 1 e 5): valor {valor_ish}"
+        )
 
 
 class CalculoDoCriterioEmPoloDeIrrigacao(CalculoDoCriterio):
@@ -119,7 +127,7 @@ class CalculoDoCriterioLocalizacaoSemiarido(CalculoDoCriterio):
         # return bool(geometria_semiarido.contains(ponto_estacao).any())
 
 
-class CalculoDoCriterioProximidadeRHNR(CalculoDoCriterio):
+class CalculoDoCriterioProximidadeObjetivosRHNR(CalculoDoCriterio):
     def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
         cplar_reader = create_cpalar_reader()
         objetivos = cplar_reader.retorna_objetivos_rhnr(estacao.codigo)
@@ -128,6 +136,44 @@ class CalculoDoCriterioProximidadeRHNR(CalculoDoCriterio):
 
         objetivos_dict = {obj.criterio: obj.prop_areas for obj in objetivos}
         return json.dumps(objetivos_dict, ensure_ascii=False)
+
+
+class CalculoDoCriterioProximidadeEstacaoRHNR(CalculoDoCriterio):
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput: ...
+
+
+class CalculoDoCriterioProximidadeEstacaoSetorEletrico(CalculoDoCriterio):
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
+        cplar_reader = create_cpalar_reader()
+        hidro_reader = create_hidro_reader()
+
+        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(estacao.codigo)
+
+        if not estacao_href or not estacao.area_drenagem_km2:
+            return None
+
+        estacoes_montante = (
+            cplar_reader.retorna_estacoes_hidrorreferenciadas_de_montante(
+                estacao_href.cobacia, area_drenagem=estacao.area_drenagem_km2
+            )
+        )
+        estacoes_jusante = cplar_reader.retorna_estacoes_hidrorreferenciadas_de_jusante(
+            estacao_href.cobacia, area_drenagem=estacao.area_drenagem_km2
+        )
+
+        estacoes_hidro = hidro_reader.retorna_estacoes_por_codigo(
+            codigos=[
+                est.codigo for est in list(estacoes_montante) + list(estacoes_jusante)
+            ]
+        )
+
+        estacoes_setor_eletrico = [
+            estacao
+            for estacao in estacoes_hidro
+            if estacao.TipoRedeEnergetica == 1 and estacao.Operando == 1
+        ]
+
+        return True if len(estacoes_setor_eletrico) > 0 else False
 
 
 class CalculoDoCriterioExtensaoDaSerie(CalculoDoCriterio):

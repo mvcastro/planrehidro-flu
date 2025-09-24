@@ -44,6 +44,7 @@ class EstacaoHidroRef(Base):
     area_drenagem: Mapped[float | None]
     nome_rio: Mapped[str]
     cotrecho: Mapped[str]
+    cocursodag: Mapped[str]
     cobacia: Mapped[str]
     noriocomp: Mapped[str]
     nuareamont: Mapped[float]
@@ -111,9 +112,9 @@ class PoloNacional(Base):
 class IndiceSegurancaHidrica(Base):
     __tablename__ = "indice_seguranca_hidrica_2017_area"
     __table_args__ = {"schema": "geoft"}
-    
+
     id: Mapped[int] = mapped_column(primary_key=True)
-    cobacia : Mapped[str]
+    cobacia: Mapped[str]
     ecossistema: Mapped[str]
     humana: Mapped[str]
     economica: Mapped[str]
@@ -123,4 +124,15 @@ class IndiceSegurancaHidrica(Base):
     nuareamont: Mapped[float]
 
 
-    
+class IndiceSegurancaHidricaNumerico(Base):
+    __tablename__ = "pnsh_ish"
+    __table_args__ = {"schema": "ish"}
+
+    ire_cobacia: Mapped[str] = mapped_column(primary_key=True)
+    ire_cs_ambiental: Mapped[float]
+    ire_cs_humano: Mapped[float]
+    ire_cs_economico: Mapped[float]
+    ire_cs_resiliencia: Mapped[float]
+    ire_cs_ishfinal: Mapped[float] = mapped_column(nullable=False)
+    ire_nuareacont: Mapped[float] = mapped_column(nullable=False)
+    ire_nuareamont: Mapped[float] = mapped_column(nullable=False)
