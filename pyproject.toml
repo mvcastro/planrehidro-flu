@@ -22,10 +22,8 @@ plotly = "^6.3.0"
 streamlit-folium = "^0.25.1"
 tqdm = "^4.67.1"
 types-tqdm = "^4.67.0.20250809"
+psycopg2-binary = "^2.9.10"
 
-
-[tool.poetry.group.dev.dependencies]
-psycopg2 = "^2.9.10"
 
 [build-system]
 requires = ["poetry-core"]
