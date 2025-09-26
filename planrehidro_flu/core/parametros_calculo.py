@@ -9,7 +9,10 @@ from planrehidro_flu.core.params_funcoes_suporte import (
     pivot_cota_to_dataframe,
     retorna_estatisticas_descarga_liquida,
 )
-from planrehidro_flu.databases.cplar.bd_cplar_reader import PostgresReader
+from planrehidro_flu.databases.cplar.bd_cplar_reader import (
+    PostgresReader,
+    localiza_cocursodags_de_jusante,
+)
 from planrehidro_flu.databases.hidro.hidro_reader import HidroDWReader
 
 CriterioOutput = int | float | bool | str | None
@@ -44,9 +47,43 @@ class CalculoDoCriterioRelevanciaEspacial(CalculoDoCriterio):
 
         cplar_reader = create_cpalar_reader()
         estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(estacao.codigo)
-        estacoes_a_montante = cplar_reader.retorna_estacoes_de_montante(
-            estacao_href.cobacia
+        estacoes_a_montante = cplar_reader.retorna_estacoes_de_montante(estacao_href)
+
+        if not estacoes_a_montante:
+            return 1.0
+
+        estacoes_a_nao_computar = []
+        for est_mont in estacoes_a_montante:
+            cocursodags_jusante = localiza_cocursodags_de_jusante(est_mont.cobacia)
+            cobacias_jusante = [
+                est_jus.cobacia
+                for est_jus in estacoes_a_montante
+                if est_jus.cocursodag in cocursodags_jusante
+                and est_jus.cobacia < est_mont.cobacia
+            ]
+            if cobacias_jusante:
+                estacoes_a_nao_computar.append(est_mont.codigo)
+
+        soma_areas_drenagens = sum(
+            [
+                est.area_drenagem
+                for est in estacoes_a_montante
+                if est.codigo not in estacoes_a_nao_computar
+                and est.area_drenagem is not None
+            ]
         )
+
+        return 1 - (soma_areas_drenagens / estacao.area_drenagem_km2)
+
+
+class CalculoDoCriterioDensidadeEstacoes(CalculoDoCriterio):
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
+        if estacao.area_drenagem_km2 is None:
+            raise ValueError("Área de drenagem não informada")
+
+        cplar_reader = create_cpalar_reader()
+        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(estacao.codigo)
+        estacoes_a_montante = cplar_reader.retorna_estacoes_de_montante(estacao_href)
         if not estacoes_a_montante:
             return 0.0
 
@@ -248,7 +285,9 @@ class CalculoDoCriterioTotalDeDescargasLiquidas(CalculoDoCriterio):
         resumo_de_descarga = hidro_reader.retorna_resumo_de_descarga(
             codigo=estacao.codigo
         )
-        estats = retorna_estatisticas_descarga_liquida(resumo_de_descarga)
+        estats = retorna_estatisticas_descarga_liquida(
+            resumo_de_descarga, ano_referencia=2024
+        )
         return estats[0]
 
 
@@ -268,5 +307,10 @@ class CalculoDoCriterioDescargaLiquidaAnual(CalculoDoCriterio):
             )
             return 0.0
 
-        estats = retorna_estatisticas_descarga_liquida(resumo_de_descarga)
+        estats = retorna_estatisticas_descarga_liquida(
+            resumo_descarga=[
+                resumo for resumo in resumo_de_descarga if resumo.data.year <= 2024
+            ],
+            ano_referencia=2024,
+        )
         return estats[1]

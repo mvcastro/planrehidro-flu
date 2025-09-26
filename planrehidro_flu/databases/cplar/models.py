@@ -16,7 +16,7 @@ TipoHidrovia = Literal["Canal", "Lago", "Baía", "Rio", "Furo"]
 
 class EstacaoFlu(Base):
     __tablename__ = "estacao_flu"
-    __table_args__ = {"schema": "hidrorreferenciamento"}
+    __table_args__ = {"schema": "estacoes"}
 
     codigo: Mapped[int] = mapped_column(primary_key=True)
     nome: Mapped[str]
@@ -34,6 +34,16 @@ class EstacaoFlu(Base):
     operando: Mapped[int]
     descricao: Mapped[str]
     historico: Mapped[str]
+
+
+class Responsavel(Base):
+    __tablename__ = "responsavel"
+    __table_args__ = {"schema": "estacoes"}
+
+    codigo_estacao: Mapped[int] = mapped_column(primary_key=True)
+    responsavel_codigo: Mapped[int]
+    responsavel_unidade: Mapped[int]
+    responsavel_jurisdicao: Mapped[int]
 
 
 class EstacaoHidroRef(Base):

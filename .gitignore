@@ -1,5 +1,9 @@
 /.mypy_cache
 
+temp.py
+temp2.py
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

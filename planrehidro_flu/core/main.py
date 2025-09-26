@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from tqdm import tqdm
 
 from planrehidro_flu.core.models import EstacaoHidro
+from planrehidro_flu.core.parametros_calculo import (
+    CalculoDoCriterioRelevanciaEspacial,
+)
 from planrehidro_flu.core.parametros_multicriterio import (
     CriterioSelecionado,
     parametros_multicriterio,
@@ -116,4 +119,13 @@ def update_field(criterio: CriterioSelecionado):
 
 
 if __name__ == "__main__":
-    populate_info_tables()
+    # populate_info_tables()
+    update_field(
+        {
+            "grupo": "Localização da Estação",
+            "nome_campo": "espacial",
+            "descricao": "Relevância espacial",
+            "unidade": "Km² / Nº estações",
+            "calculo": CalculoDoCriterioRelevanciaEspacial(),
+        },
+    )

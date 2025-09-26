@@ -13,6 +13,7 @@ from planrehidro_flu.databases.cplar.models import (
     IndiceSegurancaHidrica,
     IndiceSegurancaHidricaNumerico,
     PoloNacional,
+    Responsavel,
     TrechoNavegavel,
     TrechoVulneravelACheias,
 )
@@ -30,11 +31,11 @@ def cobacia_to_cocursodag(cobacia: str) -> str:
 
 
 def localiza_cocursodags_de_jusante(cobacia: str) -> list[str]:
-    cobacias = []
+    cocursodags = []
     for idx, _ in enumerate(cobacia, start=1):
         if int(cobacia[:idx]) % 2 == 0:
-            cobacias.append(cobacia[:idx])
-    return cobacias
+            cocursodags.append(cobacia[:idx])
+    return cocursodags
 
 
 class PostgresReader:
@@ -144,29 +145,25 @@ class PostgresReader:
             response = session.execute(query).scalars().all()
         return response
 
-    def retorna_estacoes_de_montante(self, cobacia: str) -> list[EstacaoFlu]:
-        cocursodag = cobacia_to_cocursodag(cobacia)
-
-        query = text("""
-            WITH area_drenagem AS (
-                SELECT geom
-                FROM geoft.bho_2013_areacontribuicao
-                WHERE cobacia >= :cobacia 
-                AND cocursodag LIKE CONCAT(:cocursodag, '%%')
-            )
-            SELECT * FROM estacoes.estacao_flu
-            INNER JOIN area_drenagem
-            ON ST_Intersects(estacao_flu.geom, area_drenagem.geom)
-        """)
-
+    def retorna_estacoes_de_montante(
+        self, estacao_href: EstacaoHidroRef
+    ) -> Sequence[EstacaoHidroRef]:
         with Session(self.engine) as session:
-            response = (
-                session.execute(query, {"cobacia": cobacia, "cocursodag": cocursodag})
-                .scalars()
-                .all()
+            query = (
+                select(EstacaoHidroRef)
+                .join(EstacaoFlu, EstacaoFlu.codigo == EstacaoHidroRef.codigo)
+                .join(Responsavel, Responsavel.codigo_estacao == EstacaoFlu.codigo)
+                .where(
+                    EstacaoFlu.operando == 1,
+                    Responsavel.responsavel_codigo == 1,
+                    EstacaoHidroRef.cobacia >= estacao_href.cobacia,
+                    EstacaoHidroRef.cocursodag.like(f"{estacao_href.cocursodag}%%"),
+                    EstacaoHidroRef.codigo != estacao_href.codigo,
+                )
             )
+            response = session.execute(query).scalars().all()
 
-        return cast(list[EstacaoFlu], response)
+        return response
 
     def retorno_polo_nacional_por_corrdenadas(
         self, latitude: float, longitude: float
