@@ -59,7 +59,7 @@ parametros_multicriterio: list[CriterioSelecionado] = [
         "grupo": "Localização da Estação",
         "nome_campo": "espacial",
         "descricao": "Relevância espacial",
-        "unidade": "Km² / Nº estações",
+        "unidade": "Adimensional",
         "calculo": CalculoDoCriterioRelevanciaEspacial(),
     },
     {
@@ -73,7 +73,7 @@ parametros_multicriterio: list[CriterioSelecionado] = [
         "grupo": "Objetivos da Estação",
         "nome_campo": "ish",
         "descricao": "ISH na área de drenagem",
-        "unidade": "Quantitativo classificação",
+        "unidade": "Classificação ISH",
         "calculo": CalculoDoCriterioISHNaAreaDrenagem(),
     },
     {
