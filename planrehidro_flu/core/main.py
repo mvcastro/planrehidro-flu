@@ -2,15 +2,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from tqdm import tqdm
 
-from planrehidro_flu.core.models import EstacaoHidro
-from planrehidro_flu.core.parametros_calculo import (
-    CalculoDoCriterioRelevanciaEspacial,
-)
+from planrehidro_flu.core.parametros_calculo import CalculoDoCriterioRelevanciaEspacial
 from planrehidro_flu.core.parametros_multicriterio import (
     CriterioSelecionado,
     parametros_multicriterio,
 )
-from planrehidro_flu.databases.hidro.enums import Responsavel, TipoEstacao
 from planrehidro_flu.databases.hidro.hidro_reader import HidroDWReader
 from planrehidro_flu.databases.internal.database_access import (
     insere_criterios_da_estacao,
@@ -31,7 +27,9 @@ def create_tables() -> None:
     Base.metadata.create_all(ENGINE)  # Create tables if they don't exist
 
 
-def armazena_inventario(inventario: list[EstacaoHidro]) -> None:
+def armazena_inventario() -> None:
+    hidro = HidroDWReader()
+    inventario = hidro.cria_inventario_estacao_hidro()
     insere_inventario(engine=ENGINE, inventario=inventario)
 
 
@@ -63,11 +61,7 @@ def populate_info_tables() -> None:
 
 def processa_criterios() -> None:
     hidro = HidroDWReader()
-    inventario = hidro.cria_inventario_estacao_hidro(
-        tipo_estacao=TipoEstacao.FLUVIOMETRICA,
-        operando=True,
-        responsavel=Responsavel.ANA,
-    )
+    inventario = hidro.cria_inventario_estacao_hidro()
 
     estacoes_processadas = retorna_estacoes_processadas(engine=ENGINE)
     estacoes_nao_processadas = [
@@ -92,11 +86,7 @@ def processa_criterios() -> None:
 
 def update_field(criterio: CriterioSelecionado):
     hidro = HidroDWReader()
-    inventario = hidro.cria_inventario_estacao_hidro(
-        tipo_estacao=TipoEstacao.FLUVIOMETRICA,
-        operando=True,
-        responsavel=Responsavel.ANA,
-    )
+    inventario = hidro.cria_inventario_estacao_hidro()
 
     for estacao in tqdm(inventario):
         try:
@@ -119,13 +109,13 @@ def update_field(criterio: CriterioSelecionado):
 
 
 if __name__ == "__main__":
-    # populate_info_tables()
-    update_field(
-        {
-            "grupo": "Localização da Estação",
-            "nome_campo": "espacial",
-            "descricao": "Relevância espacial",
-            "unidade": "Km² / Nº estações",
-            "calculo": CalculoDoCriterioRelevanciaEspacial(),
-        },
-    )
+    # update_field(
+    #     {
+    #         "grupo": "Localização da Estação",
+    #         "nome_campo": "espacial",
+    #         "descricao": "Relevância espacial",
+    #         "unidade": "Adimensional",
+    #         "calculo": CalculoDoCriterioRelevanciaEspacial(),
+    #     },
+    # )
+    processa_criterios()

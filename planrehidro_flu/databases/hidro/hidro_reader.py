@@ -3,7 +3,7 @@ from typing import Literal, Sequence
 
 import pandas as pd
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, or_
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import Session
 
@@ -11,7 +11,7 @@ from planrehidro_flu.core.models import CurvaDeDescarga, EstacaoHidro, ResumoDeD
 from planrehidro_flu.databases.hidro.enums import (
     BaciaEnum,
     NivelConsistencia,
-    Responsavel,
+    ResponsavelEnum,
     TipoEstacao,
 )
 from planrehidro_flu.databases.hidro.models import (
@@ -42,7 +42,7 @@ class HidroDWReader:
         connection_url = URL.create(
             "mssql+pyodbc", query={"odbc_connect": connection_string}
         )
-        self.engine = create_engine(connection_url)
+        self.engine = create_engine(connection_url, use_setinputsizes=False)
 
     def retorna_inventario(self) -> list[Estacao]:
         with Session(self.engine) as session:
@@ -51,9 +51,11 @@ class HidroDWReader:
 
     def retorna_estacoes_por_codigo(self, codigos: Sequence[int]) -> Sequence[Estacao]:
         with Session(self.engine) as session:
-            response = session.execute(
-                select(Estacao).where(Estacao.Codigo.in_(codigos))
-            ).scalars().all()
+            response = (
+                session.execute(select(Estacao).where(Estacao.Codigo.in_(codigos)))
+                .scalars()
+                .all()
+            )
             return response
 
     def retorna_inventario_por_bacia(
@@ -86,11 +88,9 @@ class HidroDWReader:
 
         return pd.read_sql(query, self.engine, index_col="Data")
 
-    def cria_inventario_estacao_hidro(
-        self, tipo_estacao: TipoEstacao, operando: bool, responsavel: Responsavel
-    ) -> list[EstacaoHidro]:
+    def cria_inventario_estacao_hidro(self) -> list[EstacaoHidro]:
         with Session(self.engine) as session:
-            estacao = (
+            stmt = (
                 select(
                     Estacao.Codigo,
                     Estacao.Nome,
@@ -119,18 +119,60 @@ class HidroDWReader:
                 )
                 .join(Rio, Estacao.RioCodigo == Rio.Codigo, isouter=True)
                 .where(
-                    Estacao.TipoEstacao == tipo_estacao,
-                    Estacao.ResponsavelCodigo == responsavel,
-                    Estacao.Operando == operando,
                     Estacao.Importado == 0,
                     Estacao.Temporario == 0,
                     Estacao.Removido == 0,
                     Estacao.ImportadoRepetido == 0,
+                    Estacao.TipoEstacao == TipoEstacao.FLUVIOMETRICA,
+                    Estacao.ResponsavelCodigo == ResponsavelEnum.ANA,
+                    Estacao.Operando == 1,
+                    or_(
+                        Estacao.Descricao.not_like("%%HIDROOBSERVA%%"),
+                        Estacao.Descricao.is_(None)
+                    )
                 )
-                .distinct()
+            ).union_all(
+                select(
+                    Estacao.Codigo,
+                    Estacao.Nome,
+                    Estacao.Latitude,
+                    Estacao.Longitude,
+                    Estacao.Altitude,
+                    Estacao.AreaDrenagem,
+                    Bacia.Nome.label("Bacia"),
+                    SubBacia.Nome.label("SubBacia"),
+                    Rio.Nome.label("Rio"),
+                    Estado.Nome.label("Estado"),
+                    Municipio.Nome.label("Municipio"),
+                    Entidade.Sigla.label("Responsavel"),
+                    Estacao.TipoEstacao,
+                    Estacao.TipoEstacaoTelemetrica,
+                    Estacao.Operando,
+                )
+                .join(Bacia, Estacao.BaciaCodigo == Bacia.Codigo, isouter=True)
+                .join(SubBacia, Estacao.SubBaciaCodigo == SubBacia.Codigo, isouter=True)
+                .join(Estado, Estacao.EstadoCodigo == Estado.Codigo, isouter=True)
+                .join(
+                    Municipio, Estacao.MunicipioCodigo == Municipio.Codigo, isouter=True
+                )
+                .join(
+                    Entidade, Estacao.ResponsavelCodigo == Entidade.Codigo, isouter=True
+                )
+                .join(Rio, Estacao.RioCodigo == Rio.Codigo, isouter=True)
+                .where(
+                    Estacao.Importado == 0,
+                    Estacao.Temporario == 0,
+                    Estacao.Removido == 0,
+                    Estacao.ImportadoRepetido == 0,
+                    Estacao.TipoEstacao == TipoEstacao.FLUVIOMETRICA,
+                    Estacao.ResponsavelCodigo == ResponsavelEnum.ANA,
+                    Estacao.Operando == 1,
+                    Estacao.OperadoraCodigo == ResponsavelEnum.SGB_CPRM,
+                    Estacao.Descricao.like("%%HIDROOBSERVA%%"),
+                )
             )
 
-            resposta = session.execute(estacao)
+            resposta = session.execute(stmt)
             rows_dict = [row._asdict() for row in resposta]
             lista_estacoes_hidro = [
                 EstacaoHidro(
@@ -236,8 +278,3 @@ class HidroDWReader:
         with Session(self.engine) as session:
             response = session.execute(query).scalars().all()
         return response
-
-
-if __name__ == "__main__":
-    hidro_reader = HidroDWReader()
-    hidro_reader.retorna_inventario()

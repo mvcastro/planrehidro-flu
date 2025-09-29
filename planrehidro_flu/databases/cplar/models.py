@@ -46,6 +46,16 @@ class Responsavel(Base):
     responsavel_jurisdicao: Mapped[int]
 
 
+class Operadora(Base):
+    __tablename__ = "operadora"
+    __table_args__ = {"schema": "estacoes"}
+
+    codigo_estacao: Mapped[int] = mapped_column(primary_key=True)
+    operadora_codigo: Mapped[int]
+    operadora_unidade: Mapped[int]
+    operadora_subunidade: Mapped[int]
+
+
 class EstacaoHidroRef(Base):
     __tablename__ = "estacaoes_hidrorreferenciadas"
     __table_args__ = {"schema": "hidrorreferenciamento"}

@@ -1,9 +1,9 @@
 import os
 from typing import Sequence, cast
-
+from planrehidro_flu.databases.hidro.enums import ResponsavelEnum
 import geopandas as gpd
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, select, text
+from sqlalchemy import create_engine, select, text, or_
 from sqlalchemy.orm import Session
 
 from planrehidro_flu.databases.cplar.models import (
@@ -12,6 +12,7 @@ from planrehidro_flu.databases.cplar.models import (
     EstacaoHidroRef,
     IndiceSegurancaHidrica,
     IndiceSegurancaHidricaNumerico,
+    Operadora,
     PoloNacional,
     Responsavel,
     TrechoNavegavel,
@@ -149,21 +150,41 @@ class PostgresReader:
         self, estacao_href: EstacaoHidroRef
     ) -> Sequence[EstacaoHidroRef]:
         with Session(self.engine) as session:
-            query = (
+            query1 = (
                 select(EstacaoHidroRef)
                 .join(EstacaoFlu, EstacaoFlu.codigo == EstacaoHidroRef.codigo)
                 .join(Responsavel, Responsavel.codigo_estacao == EstacaoFlu.codigo)
                 .where(
                     EstacaoFlu.operando == 1,
-                    Responsavel.responsavel_codigo == 1,
+                    Responsavel.responsavel_codigo == ResponsavelEnum.ANA,
                     EstacaoHidroRef.cobacia >= estacao_href.cobacia,
-                    EstacaoHidroRef.cocursodag.like(f"{estacao_href.cocursodag}%%"),
                     EstacaoHidroRef.codigo != estacao_href.codigo,
+                    EstacaoHidroRef.cocursodag.like(f"{estacao_href.cocursodag}%%"),
+                    or_(
+                        EstacaoFlu.descricao.not_like("%%HIDROOBSERVA%%"),
+                        EstacaoFlu.descricao.is_(None),
+                    )
                 )
             )
-            response = session.execute(query).scalars().all()
+            query2 = (
+                    select(EstacaoHidroRef)
+                    .join(EstacaoFlu, EstacaoFlu.codigo == EstacaoHidroRef.codigo)
+                    .join(Responsavel, Responsavel.codigo_estacao == EstacaoFlu.codigo)
+                    .join(Operadora, Operadora.codigo_estacao == EstacaoFlu.codigo)
+                    .where(
+                        EstacaoFlu.operando == 1,
+                        EstacaoFlu.descricao.like("%%HIDROOBSERVA%%"),
+                        Responsavel.responsavel_codigo == ResponsavelEnum.ANA,
+                        Operadora.operadora_codigo == ResponsavelEnum.SGB_CPRM,
+                        EstacaoHidroRef.cobacia >= estacao_href.cobacia,
+                        EstacaoHidroRef.cocursodag.like(f"{estacao_href.cocursodag}%%"),
+                        EstacaoHidroRef.codigo != estacao_href.codigo,
+                    )
+                )
+            response1 = session.execute(query1).scalars().all()
+            response2 = session.execute(query2).scalars().all()
 
-        return response
+        return list(response1) + list(response2)
 
     def retorno_polo_nacional_por_corrdenadas(
         self, latitude: float, longitude: float

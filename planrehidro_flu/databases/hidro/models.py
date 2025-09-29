@@ -31,10 +31,13 @@ class Estacao(Base):
     EstadoCodigo: Mapped[int] = mapped_column(ForeignKey("Estado.Codigo"))
     MunicipioCodigo: Mapped[int] = mapped_column(ForeignKey("Municipio.Codigo"))
     ResponsavelCodigo: Mapped[int] = mapped_column(ForeignKey("Entidade.Codigo"))
+    OperadoraCodigo: Mapped[int] = mapped_column(ForeignKey("Entidade.Codigo"))
     TipoEstacao: Mapped[int]
     TipoEstacaoTelemetrica: Mapped[int]
     TipoRedeEnergetica: Mapped[int]
     Operando: Mapped[int]
+    Descricao: Mapped[str]
+
 
     bacia: Mapped["Bacia"] = relationship(back_populates="estacao")
 

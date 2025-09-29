@@ -74,8 +74,9 @@ class EstadoEnum(IntEnum):
 class NivelConsistencia(IntEnum):
     BRUTO = 1
     CONSISTIDO = 2
-    
-class Responsavel(IntEnum):
+
+
+class ResponsavelEnum(IntEnum):
     ANA = 1
     DNOS = 2
     DNIT = 3
@@ -86,3 +87,4 @@ class Responsavel(IntEnum):
     LIGHT = 8
     FUNCEME = 9
     DAEE = 10
+    SGB_CPRM = 82
