@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from tqdm import tqdm
 
-from planrehidro_flu.core.parametros_calculo import CalculoDoCriterioRelevanciaEspacial
+from planrehidro_flu.core.parametros_calculo import CalculoDoCriterioISHNaAreaDrenagem
 from planrehidro_flu.core.parametros_multicriterio import (
     CriterioSelecionado,
     parametros_multicriterio,
@@ -109,13 +109,12 @@ def update_field(criterio: CriterioSelecionado):
 
 
 if __name__ == "__main__":
-    # update_field(
-    #     {
-    #         "grupo": "Localização da Estação",
-    #         "nome_campo": "espacial",
-    #         "descricao": "Relevância espacial",
-    #         "unidade": "Adimensional",
-    #         "calculo": CalculoDoCriterioRelevanciaEspacial(),
-    #     },
-    # )
-    processa_criterios()
+    update_field(
+        {
+            "grupo": "Objetivos da Estação",
+            "nome_campo": "ish",
+            "descricao": "ISH na área de drenagem",
+            "unidade": "Classificação ISH",
+            "calculo": CalculoDoCriterioISHNaAreaDrenagem(),
+        }
+    )
