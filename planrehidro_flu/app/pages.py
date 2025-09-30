@@ -55,7 +55,7 @@ def default_categorical_page(nome_campo: NomeCampo) -> None:
 
     with tab2:
         rh_names = df_criterios_rh["nome_rh"].unique()
-        
+
         fig = make_subplots(
             rows=4,
             cols=3,
@@ -72,7 +72,7 @@ def default_categorical_page(nome_campo: NomeCampo) -> None:
         row = 1
         for idx, nome_rh in enumerate(rh_names):
             data = df_criterios_rh[df_criterios_rh["nome_rh"] == nome_rh]
-            
+
             labels_rh = data[nome_campo].unique()
             values_rh = data[nome_campo].value_counts()
 
@@ -87,7 +87,8 @@ def default_categorical_page(nome_campo: NomeCampo) -> None:
 
         fig.update_layout(
             height=800,
-            title="Gráfico de Pizza por Região Hidrográfica",)
+            title="Gráfico de Pizza por Região Hidrográfica",
+        )
         st.plotly_chart(fig)
 
 
@@ -96,7 +97,6 @@ def default_numerical_page(nome_campo: NomeCampo) -> None:
     criterio_str = f"{criterio['descricao']} [{criterio['unidade']}]"
 
     x_data = df_criterios_rh[nome_campo]
-    x_cdf, y_cdf = cdf(x_data)
 
     st.title("Resultados Globais")
     st.subheader(f"Critério: {criterio_str}")
@@ -106,9 +106,28 @@ def default_numerical_page(nome_campo: NomeCampo) -> None:
     )
 
     with tab1:
+        st.text('')
+        pc_limite_inf, pc_limit_sup = st.select_slider(
+            "Selecione o intervalo de valores a serem mostrado - percentis (%)",
+            options=list(range(101)),
+            value=(0, 100),
+            width=500,
+        )
+
+        
+        limite_inf, limit_sup = np.percentile(x_data[x_data.notnull()], [pc_limite_inf, pc_limit_sup])
+        
+        print(f"Campo: {nome_campo}")
+        print(f"Dados: {x_data}")
+        print(f"Perc. Limites: {pc_limite_inf, pc_limit_sup}")
+        print(f"Limites: {limite_inf, limit_sup}")
+        
+
         st.plotly_chart(
             go.Figure(
-                data=go.Histogram(x=x_data),
+                data=go.Histogram(
+                    x=x_data[(x_data >= limite_inf) & (x_data <= limit_sup)]
+                ),
                 layout=go.Layout(title=go.layout.Title(text="Histograma")),
             ).update_layout(
                 xaxis=dict(title=criterio_str), yaxis=dict(title="Frequência")
@@ -117,11 +136,15 @@ def default_numerical_page(nome_campo: NomeCampo) -> None:
 
         st.plotly_chart(
             go.Figure(
-                data=go.Box(x=x_data, name=nome_campo),
+                data=go.Box(
+                    x=x_data[(x_data >= limite_inf) & (x_data <= limit_sup)],
+                    name=nome_campo,
+                ),
                 layout=go.Layout(title=go.layout.Title(text="Box-Plot")),
             ).update_layout(xaxis=dict(title=criterio_str))
         )
 
+        x_cdf, y_cdf = cdf(x_data[(x_data >= limite_inf) & (x_data <= limit_sup)])
         st.plotly_chart(
             go.Figure(
                 data=go.Scatter(x=x_cdf, y=y_cdf, name=nome_campo),
