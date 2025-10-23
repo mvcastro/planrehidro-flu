@@ -2,7 +2,16 @@ from typing import TypedDict
 
 import streamlit as st
 
-from planrehidro_flu.app.pages import default_categorical_page, default_numerical_page, get_page_function
+from planrehidro_flu.app.config_pesos_params import (
+    default_page_config_params_points,
+    default_page_config_params_weights,
+)
+from planrehidro_flu.app.pages import (
+    default_page_stats_categorical_params,
+    default_page_stats_numerical_params,
+    get_page_function,
+)
+from planrehidro_flu.app.config_pesos_params import gera_resultados
 from planrehidro_flu.core.parametros_multicriterio import NomeCampo
 
 st.set_page_config(page_title="PlanReHidro", page_icon="💧", layout="wide")
@@ -82,20 +91,48 @@ pg = st.navigation(
                 icon=":material/data_table:",
             )
         ],
-        "Critérios Categóricos:": [
+        "Estatísticas dos Critérios Categóricos:": [
             st.Page(
-                get_page_function(page["campo"], default_categorical_page), title=page["title"], icon=page["icon"]
+                get_page_function(
+                    nome_campo=page["campo"],
+                    page_function=default_page_stats_categorical_params,
+                    page_type="stats",
+                ),
+                title=page["title"],
+                icon=":material/finance:",
             )
             for page in categorical_pages
         ],
-        "Critérios Numéricos:": [
+        "Estatísticas dos Critérios Numéricos:": [
             st.Page(
-                get_page_function(page["campo"], default_numerical_page),
+                get_page_function(
+                    nome_campo=page["campo"],
+                    page_function=default_page_stats_numerical_params,
+                    page_type="stats",
+                ),
                 title=page["title"],
                 icon=page["icon"],
             )
             for page in numerical_pages
         ],
+        "Processamento dos Pesos e Critérios": [
+            st.Page(
+                default_page_config_params_weights,
+                title="Pesos",
+                icon=":material/settings:",
+            ),
+            st.Page(
+                default_page_config_params_points,
+                title="Critérios",
+                icon=":material/settings:",
+            ),
+            st.Page(
+                gera_resultados,
+                title='Resultados',
+                icon=":material/rubric:"
+            ),
+        ],
+
     }
 )
 pg.run()

@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Literal
 
 import numpy as np
 import pandas as pd
@@ -28,10 +28,11 @@ def cdf(data: np.ndarray | pd.Series) -> tuple[np.ndarray, np.ndarray]:
     return x, y
 
 
-DefaultPageFunction = Callable[[NomeCampo], None]
+type DefaultPageFunction = Callable[[NomeCampo], None]
+type PageType = Literal["stats", "params"]
 
 
-def default_categorical_page(nome_campo: NomeCampo) -> None:
+def default_page_stats_categorical_params(nome_campo: NomeCampo) -> None:
     criterio = search_criterio_props(nome_campo)
     criterio_str = f"{criterio['descricao']} [{criterio['unidade']}]"
 
@@ -92,7 +93,7 @@ def default_categorical_page(nome_campo: NomeCampo) -> None:
         st.plotly_chart(fig)
 
 
-def default_numerical_page(nome_campo: NomeCampo) -> None:
+def default_page_stats_numerical_params(nome_campo: NomeCampo) -> None:
     criterio = search_criterio_props(nome_campo)
     criterio_str = f"{criterio['descricao']} [{criterio['unidade']}]"
 
@@ -106,7 +107,7 @@ def default_numerical_page(nome_campo: NomeCampo) -> None:
     )
 
     with tab1:
-        st.text('')
+        st.text("")
         pc_limite_inf, pc_limit_sup = st.select_slider(
             "Selecione o intervalo de valores a serem mostrado - percentis (%)",
             options=list(range(101)),
@@ -114,14 +115,14 @@ def default_numerical_page(nome_campo: NomeCampo) -> None:
             width=500,
         )
 
-        
-        limite_inf, limit_sup = np.percentile(x_data[x_data.notnull()], [pc_limite_inf, pc_limit_sup])
-        
+        limite_inf, limit_sup = np.percentile(
+            x_data[x_data.notnull()], [pc_limite_inf, pc_limit_sup]
+        )
+
         print(f"Campo: {nome_campo}")
         print(f"Dados: {x_data}")
         print(f"Perc. Limites: {pc_limite_inf, pc_limit_sup}")
         print(f"Limites: {limite_inf, limit_sup}")
-        
 
         st.plotly_chart(
             go.Figure(
@@ -193,9 +194,11 @@ def default_numerical_page(nome_campo: NomeCampo) -> None:
         st.plotly_chart(fig2)
 
 
-def get_page_function(nome_campo: NomeCampo, page_function: DefaultPageFunction):
-    def funcao():
-        return page_function(nome_campo=nome_campo)
+def get_page_function(
+    nome_campo: NomeCampo, page_function: DefaultPageFunction, page_type: PageType
+) -> Callable[[], None]:
+    def funcao() -> None:
+        return page_function(nome_campo)
 
-    funcao.__name__ = nome_campo
+    funcao.__name__ = f"{page_type}_{nome_campo}"
     return funcao
