@@ -19,6 +19,9 @@ def checa_consistencia_pontuacao(df: pd.DataFrame, nome_campo: str):
         raise ValueError(
             f"Valores de Pontuação repetidas para o critério {nome_campo}!"
         )
+    if df["Pontuação"].hasnans:
+        raise ValueError(f"Valores de Pontuação não podem ser nulos - Critério {nome_campo}!")
+
 
 
 def checa_consistencia_valores_da_classe(df: pd.DataFrame, nome_campo: str):
@@ -26,13 +29,13 @@ def checa_consistencia_valores_da_classe(df: pd.DataFrame, nome_campo: str):
         if row["Valor Inferior"] > row["Valor Superior"]:
             raise ValueError(
                 "Valor Inferior maior que Valor Superior:"
-                f"{row['Valor Inferior']} > {row['Valor Superior']}- {nome_campo}!"
+                f"{row['Valor Inferior']} > {row['Valor Superior']} - {nome_campo}!"
             )
 
-        if row["Valor Inferior"].isna():
+        if np.isnan(row["Valor Inferior"]):
             raise ValueError("Valor Inferior não pode ser nulo! - {nome_campo}")
 
-        if row["Valor Inferior"].isna() and row["Valor Superior"].isna():
+        if np.isnan(row["Valor Inferior"]) and np.isnan(row["Valor Superior"]):
             raise ValueError(
                 "Valor Inferior e Superior não podem ser nulos! - {nome_campo}"
             )
@@ -60,7 +63,13 @@ def checa_consistencia_entre_as_classes(df: pd.DataFrame, nome_campo: str):
                 valor_sup_j = np.inf
 
             if valor_inf_j > valor_inf_i and valor_inf_j < valor_sup_i:
-                raise ValueError(f"Os intervaloes estão sobrepostos! - {nome_campo}")
+                raise ValueError(
+                    f"Os intervaloes estão sobrepostos! - Critério: {nome_campo} \n"
+                    f"Intervalo {valor_inf_i} - {valor_sup_i} para valor {valor_inf_j}"
+                )
 
-            if valor_sup_j > valor_inf_i   and valor_sup_j < valor_sup_i:
-                raise ValueError(f"Os intervaloes estão sobrepostos! - {nome_campo}")
+            if valor_sup_j > valor_inf_i and valor_sup_j < valor_sup_i:
+                raise ValueError(
+                    f"Os intervaloes estão sobrepostos! - {nome_campo}"
+                    f"Intervalo {valor_inf_i} - {valor_sup_i} para valor {valor_sup_j}"
+                )

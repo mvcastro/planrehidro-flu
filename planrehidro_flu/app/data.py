@@ -10,7 +10,10 @@ from planrehidro_flu.databases.internal.database_access import (
     retorna_estacoes_por_rh,
     retorna_inventario,
 )
-from planrehidro_flu.databases.internal.models import ENGINE, InventarioEstacaoFluAna
+from planrehidro_flu.databases.internal.models import (
+    ENGINE,
+    InventarioEstacaoFluAna,
+)
 
 
 @st.cache_resource
@@ -19,9 +22,21 @@ def get_engine():
 
 
 @st.cache_data
-def get_dados_criterios(_engine) -> pd.DataFrame:
+def get_dados_criterios(_engine) -> list[dict]:
     criterios = retorna_criterios_das_estacoes(_engine)
-    return pd.DataFrame([criterio.to_dict() for criterio in criterios])
+    dict_criterios = [criterio.to_dict() for criterio in criterios]
+    # Formatando dados do Critéio ish ->
+    # Mínimo e Baixo = 1 / Médio, Alto e Máximo = 0
+    formatacao_ish = {
+        "Mínimo": 1,
+        "Baixo": 1,
+        "Médio": 0,
+        "Alto": 0,
+        "Máximo": 0,
+    }
+    for criterio in dict_criterios:
+        criterio["ish"] = formatacao_ish[criterio["ish"]]
+    return dict_criterios
 
 
 @st.cache_data
@@ -55,3 +70,4 @@ def get_data_dictionary() -> pd.DataFrame:
 engine = get_engine()
 df_criterios_rh = get_dados_criterios_por_rh(engine)
 df_dicionario = get_data_dictionary()
+dados_criterios_estacoes = get_dados_criterios(engine)

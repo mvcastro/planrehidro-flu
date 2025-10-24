@@ -19,9 +19,9 @@ DEFAULT_WEIGTH_PARAMS: dict[NomeCampo, int] = {
 DEFAULT_PARAMS_CLASSES: Params = {
     "area_dren": [
         (0.0, 500.0, 0.0),
-        (500.0, 2000.0, 1.0),
+        (500.0, 1000.0, 1.0),
         (1000.0, 1500.0, 2.0),
-        (5000.000, None, 3.0),
+        (1500.000, None, 3.0),
     ],
     "espacial": [(0.0, 0.25, 0.0), (0.25, 0.50, 2.0), (0.5, None, 3.0)],
     "extensao": [

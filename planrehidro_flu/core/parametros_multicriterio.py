@@ -28,9 +28,9 @@ NomeCampo = Literal[
     "espacial",
     "cheias",
     "ish",
-    "semiarido",
+    # "semiarido",
     "irrigacao",
-    "rhnr",
+    # "rhnr",
     "navegacao",
     "extensao",
     "desv_cchave",
@@ -158,3 +158,10 @@ parametros_multicriterio: list[CriterioSelecionado] = [
     #     "calculo": CalculoDoCriterioTotalDeDescargasLiquidas(),
     # },
 ]
+
+
+def search_criterio_props(nome_campo: NomeCampo) -> CriterioSelecionado:
+    for criterio in parametros_multicriterio:
+        if criterio["nome_campo"] == nome_campo:
+            return criterio
+    raise ValueError(f"Critério {nome_campo} não encontrado.")

@@ -8,17 +8,9 @@ from plotly.subplots import make_subplots
 
 from planrehidro_flu.app.data import df_criterios_rh
 from planrehidro_flu.core.parametros_multicriterio import (
-    CriterioSelecionado,
     NomeCampo,
-    parametros_multicriterio,
+    search_criterio_props,
 )
-
-
-def search_criterio_props(nome_campo: NomeCampo) -> CriterioSelecionado:
-    for criterio in parametros_multicriterio:
-        if criterio["nome_campo"] == nome_campo:
-            return criterio
-    raise ValueError(f"Critério {nome_campo} não encontrado.")
 
 
 def cdf(data: np.ndarray | pd.Series) -> tuple[np.ndarray, np.ndarray]:
@@ -71,7 +63,7 @@ def default_page_stats_categorical_params(nome_campo: NomeCampo) -> None:
 
         n_subplot = 1
         row = 1
-        for idx, nome_rh in enumerate(rh_names):
+        for _, nome_rh in enumerate(rh_names):
             data = df_criterios_rh[df_criterios_rh["nome_rh"] == nome_rh]
 
             labels_rh = data[nome_campo].unique()
@@ -118,11 +110,6 @@ def default_page_stats_numerical_params(nome_campo: NomeCampo) -> None:
         limite_inf, limit_sup = np.percentile(
             x_data[x_data.notnull()], [pc_limite_inf, pc_limit_sup]
         )
-
-        print(f"Campo: {nome_campo}")
-        print(f"Dados: {x_data}")
-        print(f"Perc. Limites: {pc_limite_inf, pc_limit_sup}")
-        print(f"Limites: {limite_inf, limit_sup}")
 
         st.plotly_chart(
             go.Figure(

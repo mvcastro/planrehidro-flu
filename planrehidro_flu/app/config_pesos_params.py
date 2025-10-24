@@ -1,4 +1,8 @@
+from io import BytesIO
+from typing import cast
+
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 from planrehidro_flu.app.consistencia_dataframe import (
@@ -7,9 +11,14 @@ from planrehidro_flu.app.consistencia_dataframe import (
     checa_consistencia_pontuacao,
     checa_consistencia_valores_da_classe,
 )
+from planrehidro_flu.app.pages import cdf
 from planrehidro_flu.app.params_default_values import (
     DEFAULT_PARAMS_CLASSES,
     DEFAULT_WEIGTH_PARAMS,
+)
+from planrehidro_flu.app.processamento_multicriterio import (
+    CriteriosProcessamento,
+    processa_criterios,
 )
 from planrehidro_flu.core.parametros_multicriterio import (
     NomeCampo,
@@ -20,7 +29,9 @@ from planrehidro_flu.core.parametros_multicriterio import (
 def checa_consistencia_params():
     for state in st.session_state:
         if state.startswith("params_"):
-            nome_campo = state.split("_")[1]
+            idx_ini = state.find("_") + 1
+            idx_fim = state.find("_default_df")
+            nome_campo = state[idx_ini:idx_fim]
             df = st.session_state[state]
             if "Categoria" in df.columns:
                 checa_consistencia_dado_categorico(df, nome_campo)
@@ -30,16 +41,87 @@ def checa_consistencia_params():
             checa_consistencia_pontuacao(df, nome_campo)
 
 
-def gera_resultados():
-    st.json(st.session_state)
+def gera_criterios_para_processamento(session_state: dict) -> CriteriosProcessamento:
+    criterios_proc: CriteriosProcessamento = {}
+    for state in st.session_state:
+        if state.startswith("params_"):
+            idx_ini = state.find("_") + 1
+            idx_fim = state.find("_default_df")
+            nome_campo = state[idx_ini:idx_fim]
+            df = st.session_state[state]
+            criterios_proc[nome_campo] = df
+    return criterios_proc
+
+
+def gera_graficos_dos_resultados(df_resultado: pd.DataFrame) -> None:
+    st.plotly_chart(
+        go.Figure(
+            data=go.Histogram(x=df_resultado["Total"]),
+            layout=go.Layout(
+                title=go.layout.Title(text="Histograma da Pontuação Total das Estações")
+            ),
+        ).update_layout(
+            xaxis=dict(title="Pontuação Total"), yaxis=dict(title="Frequência")
+        )
+    )
+
+    x_cdf, y_cdf = cdf(df_resultado["Total"])
+    st.plotly_chart(
+        go.Figure(
+            data=go.Scatter(
+                x=x_cdf,
+                y=y_cdf,
+            ),
+            layout=go.Layout(
+                title=go.layout.Title(
+                    text="Curva de Permanência da Pontuação Total das Estações"
+                )
+            ),
+        ).update_layout(
+            xaxis=dict(title="Pontuação Total"), yaxis=dict(title="Permanência")
+        )
+    )
+
+
+def gera_resultados(df_resultado: None | pd.DataFrame = None):
     st.header("Resultados do Processamento")
-    if "processado" not in st.session_state:
-        st.warning("Parâmetros não configurados!", icon="⚠️")
-    elif not st.session_state["processado"]:
+    if "resultado" not in st.session_state:
         st.warning("Parâmetros não configurados!", icon="⚠️")
     else:
-        st.subheader("Resultados...")
-        checa_consistencia_params()
+        df_resultado = st.session_state["resultado"]
+        if df_resultado is None:
+            st.warning("Parâmetros não configurados!", icon="⚠️")
+        else:
+            gera_graficos_dos_resultados(df_resultado)
+            filtro = st.selectbox(
+                label="Selecione a estação para ver o seu resultado:",
+                options=df_resultado["codigo_estacao"],
+                index=None,
+            )
+            if filtro:
+                st.dataframe(df_resultado[df_resultado["codigo_estacao"] == filtro])
+            else:
+                st.dataframe(df_resultado)
+
+                st.download_button(
+                    label="Download da Tabela",
+                    data=to_excel(df_resultado),
+                    mime="application/vnd.ms-excel",
+                    file_name="priorizacao_estacoes_flu_rhnr.xlsx",
+                    type="primary",
+                )
+
+
+def to_excel(df):
+    """
+    Converts a Pandas DataFrame to an Excel file in-memory.
+    """
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine="openpyxl")
+    df.to_excel(writer, index=False)
+    writer.close()  # Use writer.close() instead of writer.save() for newer pandas versions
+    processed_data = output.getvalue()
+    return processed_data
 
 
 def get_default_dataframe(nome_campo: NomeCampo):
@@ -113,125 +195,14 @@ def default_page_config_params_points() -> None:
     if botao_restaurar_padrao:
         st.rerun()
 
-    st.session_state["processado"] = False
+    st.session_state["resultado"] = None
     processar = st.button("⚡ Processar ⚡")
     if processar:
-        st.session_state["processado"] = True
-        st.text("Processando...")
+        checa_consistencia_params()
+        criterios_proc = gera_criterios_para_processamento(cast(dict, st.session_state))
+        progress_bar = st.progress(0, text="Processando critérios...")
+        df_resultado = processa_criterios(criterios_proc, progress_bar)
+        st.session_state["resultado"] = df_resultado
         st.page_link(
             st.Page(gera_resultados, title="Resultados", icon=":material/rubric:")
         )
-
-
-def default_page_config_params_points_v2() -> None:
-    st.subheader("Configuração da pontuação das classes dos Critérios")
-
-    for criterio in parametros_multicriterio:
-        criterio_str = f"{criterio['descricao']} [{criterio['unidade']}]"
-        nome_campo = criterio["nome_campo"]
-
-        col1, col2 = st.columns(2, vertical_alignment="bottom")
-        with col1:
-            st.text(criterio_str)
-
-            # Initialize the DataFrame in session state
-            if f"params_{nome_campo}_default_df" not in st.session_state:
-                st.session_state[f"params_{nome_campo}_default_df"] = (
-                    get_default_dataframe(nome_campo)
-                )
-
-            edited_df = st.data_editor(
-                st.session_state[f"params_{nome_campo}_default_df"],
-                num_rows="dynamic",
-                width=600,
-                key=f"data_editor_{nome_campo}",
-            )
-
-            # Update the session state DataFrame after edits
-            st.session_state[f"params_{nome_campo}_default_df"] = edited_df
-
-        with col2:
-            botao_restaurar_padrao = st.button(
-                "Restaurar valores padrão",
-                type="primary",
-                icon="♻️",
-                key=f"botao_{nome_campo}",
-            )
-            if botao_restaurar_padrao:
-                reset_data_editor_state(nome_campo=nome_campo)
-                st.rerun()  # Rerun the app to display the reset data
-
-    processar = st.button("Processar!")
-
-    if processar:
-        st.text("Processando...")
-
-
-# def default_page_config_numerical_params() -> None:
-#     criterio = search_criterio_props(nome_campo)
-#     criterio_str = f"{criterio['descricao']} [{criterio['unidade']}]"
-
-#     st.subheader("Configuração dos valores dos Pesos e Critérios")
-#     st.text(criterio_str)
-
-#     # Initialize the DataFrame in session state
-#     if f"params_{nome_campo}_default_df" not in st.session_state:
-#         # Create a sample DataFrame
-#         initial_df = pd.DataFrame(
-#             [
-#                 {
-#                     # "Ordem": key,
-#                     "Valor Inferior": values[0],
-#                     "Valor Superior": values[1],
-#                     "Pontuação": values[2],
-#                 }
-#                 for _, values in DEFAULT_PARAMS_CLASSES[criterio["nome_campo"]].items()
-#             ]
-#         )
-#         st.session_state[f"params_{nome_campo}_default_df"] = initial_df.copy()
-
-#     if f"params_{nome_campo}_peso" not in st.session_state:
-#         st.session_state[f"params_{nome_campo}_peso"] = 1
-
-#     def reset_data_editor_state():
-#         """Function to reset the DataFrame in session state."""
-#         # Create a sample DataFrame
-#         initial_df = pd.DataFrame(
-#             [
-#                 {
-#                     # "Ordem": key,
-#                     "Valor inf.": values[0],
-#                     "Valor sup.": values[1],
-#                     "Pontuação": values[2],
-#                 }
-#                 for _, values in DEFAULT_PARAMS_CLASSES[criterio["nome_campo"]].items()
-#             ]
-#         )
-#         st.session_state[f"params_{nome_campo}_default_df"] = initial_df.copy()
-#         st.session_state[f"params_{nome_campo}_peso"] = 1
-
-#     edited_df = st.data_editor(
-#         st.session_state[f"params_{nome_campo}_default_df"],
-#         num_rows="dynamic",
-#         width=600,
-#     )
-
-#     peso = st.number_input(
-#         label="Defina o peso do critério:",
-#         min_value=0,
-#         max_value=10,
-#         value=st.session_state[f"params_{nome_campo}_peso"],
-#         step=1,
-#         width=150,
-#     )
-
-#     # Update the session state DataFrame after edits
-#     st.session_state[f"params_{nome_campo}_default_df"] = edited_df
-#     st.session_state[f"params_{nome_campo}_peso"] = peso
-
-#     botao_restaurar_padrao = st.button(
-#         "Restaurar valores padrão", type="primary", icon="♻️"
-#     )
-#     if botao_restaurar_padrao:
-#         reset_data_editor_state()
-#         st.rerun()  # Rerun the app to display the reset data
