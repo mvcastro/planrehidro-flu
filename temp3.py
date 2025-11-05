@@ -1,5 +1,5 @@
 from planrehidro_flu.core.models import EstacaoHidro
-from planrehidro_flu.core.parametros_calculo import CalculoDoCriterioISHNaAreaDrenagem, CalculoDoCriterioTrechoDeNavegacao
+from planrehidro_flu.core.parametros_calculo import CalculoDoCriterioTrechoDeNavegacao
 from planrehidro_flu.databases.cplar.bd_cplar_reader import PostgresReader
 from planrehidro_flu.databases.hidro.enums import TipoEstacao
 

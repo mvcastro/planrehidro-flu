@@ -1,13 +1,14 @@
 from datetime import date
 from typing import Literal
 
+from sqlalchemy import ForeignKey, SmallInteger, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase): ...
 
 
-TipoHidroRef = Literal["Área de Drenagem", "Nome do Rio", "Desmias Estações"]
+TipoHidroRef = Literal["Área de Drenagem", "Nome do Rio", "Demais Estações"]
 
 SitucaoNavegacao = Literal["Navegação sazonal", "Navegável"]
 SitucaoEstudos = Literal["Em desenvolvimento", "Concluído"]
@@ -27,7 +28,6 @@ class EstacaoFlu(Base):
     area_drenagem: Mapped[float | None]
     bacia_codigo: Mapped[int]
     subbacia_codigo: Mapped[int]
-    rio_codigo: Mapped[int | None]
     estado_codigo: Mapped[int]
     municipio_codigo: Mapped[int]
     ultima_atualizacao: Mapped[date]
@@ -56,9 +56,25 @@ class Operadora(Base):
     operadora_subunidade: Mapped[int]
 
 
-class EstacaoHidroRef(Base):
-    __tablename__ = "estacaoes_hidrorreferenciadas"
-    __table_args__ = {"schema": "hidrorreferenciamento"}
+class EstacaoHidroRefBHO2013(Base):
+    __tablename__ = "estacoes_hidrorreferenciadas_bho2013"
+    __table_args__ = {"schema": "hidrorref_bho2013"}
+
+    codigo: Mapped[int] = mapped_column(primary_key=True)
+    area_drenagem: Mapped[float | None]
+    nome_rio: Mapped[str]
+    cotrecho: Mapped[str]
+    cocursodag: Mapped[str]
+    cobacia: Mapped[str]
+    noriocomp: Mapped[str]
+    nuareamont: Mapped[float]
+    distancia_m: Mapped[float]
+    tipo_href: Mapped[TipoHidroRef]
+
+
+class EstacaoHidroRefBHAE(Base):
+    __tablename__ = "estacoes_hidrorreferenciadas_bhae"
+    __table_args__ = {"schema": "hidrorref_bhae"}
 
     codigo: Mapped[int] = mapped_column(primary_key=True)
     area_drenagem: Mapped[float | None]
@@ -86,7 +102,7 @@ class EstacaoComObjetivos(Base):
 
 class TrechoNavegavel(Base):
     __tablename__ = "hidrorref_trechos_navegaveis"
-    __table_args__ = {"schema": "geoft"}
+    __table_args__ = {"schema": "hidrorref_bho2013"}
 
     cotrecho: Mapped[int] = mapped_column(primary_key=True)
     cocursodag: Mapped[str]
@@ -102,7 +118,7 @@ class TrechoNavegavel(Base):
 
 class TrechoVulneravelACheias(Base):
     __tablename__ = "geoft_hidrorref_inundacoes"
-    __table_args__ = {"schema": "hidrorreferenciamento"}
+    __table_args__ = {"schema": "hidrorref_bho2013"}
 
     id: Mapped[int] = mapped_column(primary_key=True)
     codigo: Mapped[int]
@@ -156,3 +172,33 @@ class IndiceSegurancaHidricaNumerico(Base):
     ire_cs_ishfinal: Mapped[float] = mapped_column(nullable=False)
     ire_nuareacont: Mapped[float] = mapped_column(nullable=False)
     ire_nuareamont: Mapped[float] = mapped_column(nullable=False)
+
+
+class EstacaoRHNRSelecaoInicial(Base):
+    __tablename__ = "estacoes_rhnr_selecao_inicial"
+    __table_args__ = {"schema": "revisao_rhnr"}
+
+    codigo: Mapped[int] = mapped_column(
+        ForeignKey("estacao_flu.codigo"), primary_key=True
+    )
+    objetivo1: Mapped[int] = mapped_column(SmallInteger)
+    objetivo2: Mapped[int] = mapped_column(SmallInteger)
+    objetivo3: Mapped[int] = mapped_column(SmallInteger)
+    objetivo4: Mapped[int] = mapped_column(SmallInteger)
+    objetivo5: Mapped[int] = mapped_column(SmallInteger)
+    objetivo6: Mapped[int] = mapped_column(SmallInteger)
+
+
+class EstacaoPropostaRHNR(Base):
+    __tablename__ = "estacoes_proposta_rhnr"
+    __table_args__ = {"schema": "revisao_rhnr"}
+
+    codigo: Mapped[int] = mapped_column(
+        ForeignKey("estacao_flu.codigo"), primary_key=True
+    )
+    tipo_estacao: Mapped[str] = mapped_column(String(5), nullable=False)
+    proposta_operacao_planilha: Mapped[str] = mapped_column(nullable=True)
+    proposta_tipo: Mapped[str] = mapped_column(String(5), nullable=True)
+    proposta_integra_rhnr: Mapped[bool] = mapped_column(nullable=True)
+    observacao: Mapped[str] = mapped_column(nullable=True)
+    proposta_operacao: Mapped[str] = mapped_column(nullable=True)

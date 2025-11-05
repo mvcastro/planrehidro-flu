@@ -13,6 +13,10 @@ from planrehidro_flu.databases.cplar.bd_cplar_reader import (
     PostgresReader,
     localiza_cocursodags_de_jusante,
 )
+from planrehidro_flu.databases.cplar.models import (
+    EstacaoHidroRefBHAE,
+    EstacaoHidroRefBHO2013,
+)
 from planrehidro_flu.databases.hidro.hidro_reader import HidroDWReader
 
 CriterioOutput = int | float | bool | str | None
@@ -46,8 +50,12 @@ class CalculoDoCriterioRelevanciaEspacial(CalculoDoCriterio):
             raise ValueError("Área de drenagem não informada")
 
         cplar_reader = create_cpalar_reader()
-        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(estacao.codigo)
-        estacoes_a_montante = cplar_reader.retorna_estacoes_de_montante(estacao_href)
+        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(
+            classe_href=EstacaoHidroRefBHAE, codigo_estacao=estacao.codigo
+        )
+        estacoes_a_montante = cplar_reader.retorna_estacoes_de_montante(
+            classe_href=EstacaoHidroRefBHAE, estacao_href=estacao_href
+        )
 
         if not estacoes_a_montante:
             return 1.0
@@ -82,8 +90,12 @@ class CalculoDoCriterioDensidadeEstacoes(CalculoDoCriterio):
             raise ValueError("Área de drenagem não informada")
 
         cplar_reader = create_cpalar_reader()
-        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(estacao.codigo)
-        estacoes_a_montante = cplar_reader.retorna_estacoes_de_montante(estacao_href)
+        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(
+            classe_href=EstacaoHidroRefBHAE, codigo_estacao=estacao.codigo
+        )
+        estacoes_a_montante = cplar_reader.retorna_estacoes_de_montante(
+            classe_href=EstacaoHidroRefBHAE, estacao_href=estacao_href
+        )
         if not estacoes_a_montante:
             return 0.0
 
@@ -93,7 +105,9 @@ class CalculoDoCriterioDensidadeEstacoes(CalculoDoCriterio):
 class CalculoDoCriterioTrechoVulnerabilidadeCheias(CalculoDoCriterio):
     def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
         cplar_reader = create_cpalar_reader()
-        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(estacao.codigo)
+        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(
+            classe_href=EstacaoHidroRefBHO2013, codigo_estacao=estacao.codigo
+        )
         trecho_vulneravel_cheias = cplar_reader.retorna_trecho_vulneravel_a_cheias(
             estacao_href.cobacia
         )
@@ -103,7 +117,9 @@ class CalculoDoCriterioTrechoVulnerabilidadeCheias(CalculoDoCriterio):
 class CalculoDoCriterioISHNaAreaDrenagem(CalculoDoCriterio):
     def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
         cplar_reader = create_cpalar_reader()
-        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(estacao.codigo)
+        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(
+            classe_href=EstacaoHidroRefBHO2013, codigo_estacao=estacao.codigo
+        )
         ish_cobacias = cplar_reader.retorna_classes_ish_numerico_por_area_drenagem(
             estacao_href.cobacia
         )
@@ -146,7 +162,9 @@ class CalculoDoCriterioEmPoloDeIrrigacao(CalculoDoCriterio):
 class CalculoDoCriterioTrechoDeNavegacao(CalculoDoCriterio):
     def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
         cplar_reader = create_cpalar_reader()
-        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(estacao.codigo)
+        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(
+            classe_href=EstacaoHidroRefBHO2013, codigo_estacao=estacao.codigo
+        )
         trecho = cplar_reader.retorna_trecho_navegavel(estacao_href.cobacia)
         return False if trecho is None else True
 
@@ -176,41 +194,116 @@ class CalculoDoCriterioProximidadeObjetivosRHNR(CalculoDoCriterio):
 
 
 class CalculoDoCriterioProximidadeEstacaoRHNR(CalculoDoCriterio):
-    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput: ...
-
-
-class CalculoDoCriterioProximidadeEstacaoSetorEletrico(CalculoDoCriterio):
-    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
+    def calcular(self, estacao: EstacaoHidro, **kwargs) -> CriterioOutput:
         cplar_reader = create_cpalar_reader()
-        hidro_reader = create_hidro_reader()
 
-        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(estacao.codigo)
+        if "cenario" not in kwargs:
+            raise ValueError(
+                "Cenário não informado para o cálculo de proximidade à RHNR"
+            )
+        cenario = kwargs["cenario"]
 
-        if not estacao_href or not estacao.area_drenagem_km2:
+        if cenario == "Cenário 1":
+            estacoes_rhnr = cplar_reader.retorna_estacoes_rhnr_cenario1()
+        elif cenario == "Cenário 2":
+            estacoes_rhnr = cplar_reader.retorna_estacoes_rhnr_cenario2()
+        else:
+            raise ValueError(
+                f"Cenário inválido: {cenario} - Cenário deve ser 'Cenário 1' ou 'Cenário 2'"
+            )
+
+        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(
+            classe_href=EstacaoHidroRefBHAE, codigo_estacao=estacao.codigo
+        )
+
+        if estacao.area_drenagem_km2 is None:
             return None
 
         estacoes_montante = (
             cplar_reader.retorna_estacoes_hidrorreferenciadas_de_montante(
-                estacao_href.cobacia, area_drenagem=estacao.area_drenagem_km2
+                classe_href=EstacaoHidroRefBHAE, cobacia=estacao_href.cobacia
             )
         )
         estacoes_jusante = cplar_reader.retorna_estacoes_hidrorreferenciadas_de_jusante(
-            estacao_href.cobacia, area_drenagem=estacao.area_drenagem_km2
+            classe_href=EstacaoHidroRefBHAE, cobacia=estacao_href.cobacia
         )
-
-        estacoes_hidro = hidro_reader.retorna_estacoes_por_codigo(
-            codigos=[
-                est.codigo for est in list(estacoes_montante) + list(estacoes_jusante)
-            ]
-        )
-
-        estacoes_setor_eletrico = [
-            estacao
-            for estacao in estacoes_hidro
-            if estacao.TipoRedeEnergetica == 1 and estacao.Operando == 1
+        estacoes_no_rio = list(estacoes_montante) + list(estacoes_jusante)
+        codigos_estacoes_rhnr = {est.codigo for est in estacoes_rhnr}
+        estacoes_selecionadas = [
+            100 * abs(1 - (est.area_drenagem / estacao.area_drenagem_km2))
+            for est in estacoes_no_rio
+            if est.codigo in codigos_estacoes_rhnr and est.area_drenagem is not None
         ]
 
-        return True if len(estacoes_setor_eletrico) > 0 else False
+        return min(estacoes_selecionadas) if estacoes_selecionadas else None
+
+
+class CalculoDoCriterioProximidadeEstacaoRHNRCenario1(CalculoDoCriterio):
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
+        return CalculoDoCriterioProximidadeEstacaoRHNR().calcular(
+            estacao, cenario="Cenário 1"
+        )
+
+
+class CalculoDoCriterioProximidadeEstacaoRHNRCenario2(CalculoDoCriterio):
+    def calcular(self, estacao: EstacaoHidro) -> CriterioOutput:
+        return CalculoDoCriterioProximidadeEstacaoRHNR().calcular(
+            estacao, cenario="Cenário 2"
+        )
+
+
+class CalculoDoCriterioProximidadeEstacaoSetorEletrico(CalculoDoCriterio):
+    def calcular(self, estacao: EstacaoHidro) -> float | None:
+        cplar_reader = create_cpalar_reader()
+        hidro_reader = create_hidro_reader()
+
+        estacao_href = cplar_reader.retorna_estacao_hidrorreferenciada(
+            classe_href=EstacaoHidroRefBHAE, codigo_estacao=estacao.codigo
+        )
+
+        if estacao.area_drenagem_km2 is None:
+            return None
+
+        estacoes_montante = (
+            cplar_reader.retorna_estacoes_hidrorreferenciadas_de_montante(
+                classe_href=EstacaoHidroRefBHAE, cobacia=estacao_href.cobacia
+            )
+        )
+        estacoes_jusante = cplar_reader.retorna_estacoes_hidrorreferenciadas_de_jusante(
+            classe_href=EstacaoHidroRefBHAE,
+            cobacia=estacao_href.cobacia,
+        )
+
+        estacoes_no_rio = {
+            est.codigo: est.nuareamont for est in estacoes_montante + estacoes_jusante
+        }
+        estacoes_hidro = hidro_reader.retorna_estacoes_por_codigo(
+            codigos=list(estacoes_no_rio.keys())
+        )
+
+        estacoes_hidro_energia = [
+            est
+            for est in estacoes_hidro
+            if est.TipoRedeEnergetica == 1 and est.Operando == 1
+        ]
+
+        proporcao_area_estacoes_setor_eletrico = []
+        for est in estacoes_hidro_energia:
+            if est.AreaDrenagem is None:
+                area_drenagem = estacoes_no_rio.get(est.Codigo, None)
+                if area_drenagem is None:
+                    continue
+            else:
+                area_drenagem = est.AreaDrenagem
+
+            proporcao_area = 100 * abs(1 - (area_drenagem / estacao.area_drenagem_km2))
+            proporcao_area_estacoes_setor_eletrico.append(proporcao_area)
+
+        return (
+            min(proporcao_area_estacoes_setor_eletrico)
+            if proporcao_area_estacoes_setor_eletrico
+            else None
+        )
 
 
 class CalculoDoCriterioExtensaoDaSerie(CalculoDoCriterio):

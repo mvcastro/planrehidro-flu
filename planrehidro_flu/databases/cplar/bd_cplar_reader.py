@@ -1,15 +1,18 @@
 import os
 from typing import Sequence, cast
-from planrehidro_flu.databases.hidro.enums import ResponsavelEnum
+
 import geopandas as gpd
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, select, text, or_
+from sqlalchemy import create_engine, or_, select, text
 from sqlalchemy.orm import Session
 
 from planrehidro_flu.databases.cplar.models import (
     EstacaoComObjetivos,
     EstacaoFlu,
-    EstacaoHidroRef,
+    EstacaoHidroRefBHAE,
+    EstacaoHidroRefBHO2013,
+    EstacaoPropostaRHNR,
+    EstacaoRHNRSelecaoInicial,
     IndiceSegurancaHidrica,
     IndiceSegurancaHidricaNumerico,
     Operadora,
@@ -18,6 +21,7 @@ from planrehidro_flu.databases.cplar.models import (
     TrechoNavegavel,
     TrechoVulneravelACheias,
 )
+from planrehidro_flu.databases.hidro.enums import ResponsavelEnum
 
 load_dotenv()
 
@@ -51,56 +55,50 @@ class PostgresReader:
         )
         self.engine = create_engine(connection_url)
 
-    def retorna_estacao_hidrorreferenciada(
-        self, codigo_estacao: int
-    ) -> EstacaoHidroRef:
+    def retorna_estacao_hidrorreferenciada[
+        T: (EstacaoHidroRefBHO2013, EstacaoHidroRefBHAE)
+    ](
+        self,
+        classe_href: type[T],
+        codigo_estacao: int,
+    ) -> T:
         with Session(self.engine) as session:
-            query = select(EstacaoHidroRef).where(
-                EstacaoHidroRef.codigo == codigo_estacao
-            )
+            query = select(classe_href).where(classe_href.codigo == codigo_estacao)
             response = session.execute(query).scalar()
 
-        if not response:
-            raise ValueError(
-                f"Estação Hidrorreferenciada com código {codigo_estacao} não encontrada."
-            )
+            if not response:
+                raise ValueError(
+                    f"Estação Hidrorreferenciada com código {codigo_estacao} não encontrada."
+                )
         return response
 
-    def retorna_estacoes_hidrorreferenciadas_de_montante(
-        self, cobacia: str, area_drenagem: float, limiar_proporcao: float = 0.1
-    ) -> list[EstacaoHidroRef]:
+    def retorna_estacoes_hidrorreferenciadas_de_montante[
+        T: (EstacaoHidroRefBHO2013, EstacaoHidroRefBHAE)
+    ](self, classe_href: type[T], cobacia: str) -> list[T]:
         cocursodag = cobacia_to_cocursodag(cobacia=cobacia)
         with Session(self.engine) as session:
-            query = select(EstacaoHidroRef).where(
-                EstacaoHidroRef.cobacia > cobacia,
-                EstacaoHidroRef.cocursodag.like(f"{cocursodag}%%"),
+            query = select(classe_href).where(
+                classe_href.cobacia > cobacia,
+                classe_href.cocursodag.like(f"{cocursodag}%%"),
             )
             response = session.execute(query).scalars().all()
 
-        return [
-            estacao
-            for estacao in response
-            if estacao.area_drenagem is not None
-            and abs(1 - (estacao.area_drenagem / area_drenagem)) <= limiar_proporcao
-        ]
+        result = [estacao for estacao in response if estacao.area_drenagem is not None]
 
-    def retorna_estacoes_hidrorreferenciadas_de_jusante(
-        self, cobacia: str, area_drenagem: float, limiar_proporcao: float = 0.1
-    ) -> list[EstacaoHidroRef]:
+        return result
+
+    def retorna_estacoes_hidrorreferenciadas_de_jusante[
+        T: (EstacaoHidroRefBHO2013, EstacaoHidroRefBHAE)
+    ](self, classe_href: type[T], cobacia: str) -> list[T]:
         cocursodags = localiza_cocursodags_de_jusante(cobacia=cobacia)
         with Session(self.engine) as session:
-            query = select(EstacaoHidroRef).where(
-                EstacaoHidroRef.cobacia < cobacia,
-                EstacaoHidroRef.cocursodag.in_(cocursodags),
+            query = select(classe_href).where(
+                classe_href.cobacia < cobacia,
+                classe_href.cocursodag.in_(cocursodags),
             )
             response = session.execute(query).scalars().all()
 
-        return [
-            estacao
-            for estacao in response
-            if estacao.area_drenagem is not None
-            and abs(1 - (estacao.area_drenagem / area_drenagem)) <= limiar_proporcao
-        ]
+        return [estacao for estacao in response if estacao.area_drenagem is not None]
 
     def retorna_trecho_navegavel(self, cobacia: str) -> TrechoNavegavel | None:
         with Session(self.engine) as session:
@@ -146,45 +144,52 @@ class PostgresReader:
             response = session.execute(query).scalars().all()
         return response
 
-    def retorna_estacoes_de_montante(
-        self, estacao_href: EstacaoHidroRef
-    ) -> Sequence[EstacaoHidroRef]:
+    def retorna_estacoes_de_montante[T: (EstacaoHidroRefBHO2013, EstacaoHidroRefBHAE)](
+        self, classe_href: type[T], estacao_href: T
+    ) -> Sequence[T]:
         with Session(self.engine) as session:
             query1 = (
-                select(EstacaoHidroRef)
-                .join(EstacaoFlu, EstacaoFlu.codigo == EstacaoHidroRef.codigo)
+                select(classe_href)
+                .join(EstacaoFlu, EstacaoFlu.codigo == classe_href.codigo)
                 .join(Responsavel, Responsavel.codigo_estacao == EstacaoFlu.codigo)
                 .where(
                     EstacaoFlu.operando == 1,
                     Responsavel.responsavel_codigo == ResponsavelEnum.ANA,
-                    EstacaoHidroRef.cobacia >= estacao_href.cobacia,
-                    EstacaoHidroRef.codigo != estacao_href.codigo,
-                    EstacaoHidroRef.cocursodag.like(f"{estacao_href.cocursodag}%%"),
+                    classe_href.cobacia >= estacao_href.cobacia,
+                    classe_href.codigo != estacao_href.codigo,
+                    classe_href.cocursodag.like(f"{estacao_href.cocursodag}%%"),
+                    classe_href.area_drenagem.is_not(None),
                     or_(
                         EstacaoFlu.descricao.not_like("%%HIDROOBSERVA%%"),
                         EstacaoFlu.descricao.is_(None),
-                    )
+                    ),
                 )
             )
             query2 = (
-                    select(EstacaoHidroRef)
-                    .join(EstacaoFlu, EstacaoFlu.codigo == EstacaoHidroRef.codigo)
-                    .join(Responsavel, Responsavel.codigo_estacao == EstacaoFlu.codigo)
-                    .join(Operadora, Operadora.codigo_estacao == EstacaoFlu.codigo)
-                    .where(
-                        EstacaoFlu.operando == 1,
-                        EstacaoFlu.descricao.like("%%HIDROOBSERVA%%"),
-                        Responsavel.responsavel_codigo == ResponsavelEnum.ANA,
-                        Operadora.operadora_codigo == ResponsavelEnum.SGB_CPRM,
-                        EstacaoHidroRef.cobacia >= estacao_href.cobacia,
-                        EstacaoHidroRef.cocursodag.like(f"{estacao_href.cocursodag}%%"),
-                        EstacaoHidroRef.codigo != estacao_href.codigo,
-                    )
+                select(classe_href)
+                .join(EstacaoFlu, EstacaoFlu.codigo == classe_href.codigo)
+                .join(Responsavel, Responsavel.codigo_estacao == EstacaoFlu.codigo)
+                .join(Operadora, Operadora.codigo_estacao == EstacaoFlu.codigo)
+                .where(
+                    EstacaoFlu.operando == 1,
+                    EstacaoFlu.descricao.like("%%HIDROOBSERVA%%"),
+                    Responsavel.responsavel_codigo == ResponsavelEnum.ANA,
+                    Operadora.operadora_codigo == ResponsavelEnum.SGB_CPRM,
+                    classe_href.cobacia >= estacao_href.cobacia,
+                    classe_href.cocursodag.like(f"{estacao_href.cocursodag}%%"),
+                    classe_href.codigo != estacao_href.codigo,
+                    classe_href.area_drenagem.is_not(None),
                 )
+            )
             response1 = session.execute(query1).scalars().all()
             response2 = session.execute(query2).scalars().all()
 
-        return list(response1) + list(response2)
+        return [
+            estacao
+            for estacao in list(response1) + list(response2)
+            if cast(float, estacao.area_drenagem)
+            <= cast(float, estacao_href.area_drenagem)
+        ]
 
     def retorno_polo_nacional_por_corrdenadas(
         self, latitude: float, longitude: float
@@ -228,3 +233,68 @@ class PostgresReader:
             response = session.execute(query).scalars().all()
 
         return response
+
+    def retorna_estacoes_rhnr_selecao_inicial(self) -> Sequence[EstacaoFlu]:
+        with Session(self.engine) as session:
+            response = (
+                session.execute(
+                    select(EstacaoFlu).where(
+                        EstacaoFlu.codigo == EstacaoRHNRSelecaoInicial.codigo,
+                    )
+                )
+                .scalars()
+                .all()
+            )
+        return response
+
+    def retorna_estacoes_implementadas_rhnr(self) -> Sequence[EstacaoFlu]:
+        with Session(self.engine) as session:
+            response = (
+                session.execute(
+                    select(EstacaoFlu).where(EstacaoFlu.descricao.like("%RHNR%"))
+                )
+                .scalars()
+                .all()
+            )
+
+        return response
+
+    def retorna_estacoes_propostas_rhnr(self) -> Sequence[EstacaoFlu]:
+        with Session(self.engine) as session:
+            response = (
+                session.execute(
+                    select(EstacaoFlu).where(
+                        EstacaoFlu.codigo == EstacaoPropostaRHNR.codigo,
+                        EstacaoPropostaRHNR.proposta_integra_rhnr.is_(True),
+                    )
+                )
+                .scalars()
+                .all()
+            )
+        return response
+
+    def retorna_estacoes_rhnr_cenario1(self) -> list[EstacaoFlu]:
+        """
+        Retorna as estações RHNR do cenário 1:
+        Seleção Inicial + Estações Implementadas +  Estações da Revisaõ par Integrar a RHNR.
+        """
+        response1 = self.retorna_estacoes_rhnr_selecao_inicial()
+        response2 = self.retorna_estacoes_implementadas_rhnr()
+        response3 = self.retorna_estacoes_propostas_rhnr()
+        data = list(response1) + list(response2) + list(response3)
+
+        seen_ids = set()
+        unique_records = []
+        for record in data:
+            if record.codigo not in seen_ids:
+                unique_records.append(record)
+                seen_ids.add(record.codigo)
+
+        return unique_records
+
+    def retorna_estacoes_rhnr_cenario2(self) -> list[EstacaoFlu]:
+        """
+        Retorna as estações RHNR do cenário 2:
+        Apenas Estações Propostas para Integrar a RHNR.
+        """
+        return list(self.retorna_estacoes_propostas_rhnr())

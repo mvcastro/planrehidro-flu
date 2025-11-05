@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Literal, Self
 
-from pydantic import BaseModel, PositiveFloat
+from pydantic import BaseModel
 
 from planrehidro_flu.core.enums import (
     BaciaEnumStr,
@@ -27,6 +27,9 @@ class EstacaoHidro(BaseModel):
     estacao_telemetrica: bool
     operando: bool
 
+    def __repr__(self) -> str:
+        return super().__repr__()
+
 
 class ResumoDeDescarga(BaseModel):
     codigo: int
@@ -34,10 +37,10 @@ class ResumoDeDescarga(BaseModel):
     data: date
     cota: float
     vazao: None | float
-    area_molhada: None |  float
-    largura: None |  float
-    vel_media: None |  float
-    profundidade: None |  float
+    area_molhada: None | float
+    largura: None | float
+    vel_media: None | float
+    profundidade: None | float
 
 
 class CurvaDeDescarga(BaseModel):

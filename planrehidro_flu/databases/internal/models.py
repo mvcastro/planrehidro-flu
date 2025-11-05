@@ -52,19 +52,19 @@ class CriteriosDaEstacao(Base):
     __tablename__ = "valor_criterio"
 
     codigo_estacao: Mapped[int] = mapped_column(primary_key=True)
-    area_dren: Mapped[float]
-    espacial: Mapped[float]
+    area_dren: Mapped[float] = mapped_column(nullable=True)
+    espacial: Mapped[float] = mapped_column(nullable=True)
     cheias: Mapped[bool] = mapped_column(nullable=True)
-    ish: Mapped[str]
+    ish: Mapped[str] = mapped_column(nullable=True)
     semiarido: Mapped[bool] = mapped_column(nullable=True)
     irrigacao: Mapped[bool] = mapped_column(nullable=True)
-    rhnr: Mapped[str] = mapped_column(nullable=True)
     navegacao: Mapped[bool] = mapped_column(nullable=True)
-    extensao: Mapped[int]
+    extensao: Mapped[int] = mapped_column(nullable=True)
     desv_cchave: Mapped[float] = mapped_column(nullable=True)
-    med_desc: Mapped[float]
-    est_energia: Mapped[bool] = mapped_column(nullable=True)
-    # est_rhnr: Mapped[bool] = mapped_column(nullable=True)
+    med_desc: Mapped[float] = mapped_column(nullable=True)
+    est_energia: Mapped[float] = mapped_column(nullable=True)
+    rhnr_c1: Mapped[float] = mapped_column(nullable=True)
+    rhnr_c2: Mapped[float] = mapped_column(nullable=True)
 
     def to_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}

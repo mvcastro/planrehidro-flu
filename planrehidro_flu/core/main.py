@@ -2,7 +2,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from tqdm import tqdm
 
-from planrehidro_flu.core.parametros_calculo import CalculoDoCriterioISHNaAreaDrenagem
 from planrehidro_flu.core.parametros_multicriterio import (
     CriterioSelecionado,
     parametros_multicriterio,
@@ -60,6 +59,8 @@ def populate_info_tables() -> None:
 
 
 def processa_criterios() -> None:
+    Base.metadata.create_all(ENGINE, tables=[CriteriosDaEstacao.__table__])
+
     hidro = HidroDWReader()
     inventario = hidro.cria_inventario_estacao_hidro()
 
@@ -69,19 +70,22 @@ def processa_criterios() -> None:
     ]
 
     for estacao in tqdm(estacoes_nao_processadas):
-        try:
-            valores_criterios = {}
-            valores_criterios["codigo_estacao"] = estacao.codigo
+        valores_criterios = {}
+        valores_criterios["codigo_estacao"] = estacao.codigo
 
-            for criterio in parametros_multicriterio:
+        for criterio in parametros_multicriterio:
+            try:
                 valor_criterio = criterio["calculo"].calcular(estacao)
                 valores_criterios[criterio["nome_campo"]] = valor_criterio  # type: ignore
+            except Exception as e:
+                print(
+                    f"Erro ao processar critérios para a estação {estacao.codigo}: {e}"
+                )
+                valores_criterios[criterio["nome_campo"]] = None
 
-            insere_criterios_da_estacao(
-                engine=ENGINE, valores_criterios=CriteriosDaEstacao(**valores_criterios)
-            )
-        except Exception as e:
-            print(f"Erro ao processar critérios para a estação {estacao.codigo}: {e}")
+        insere_criterios_da_estacao(
+            engine=ENGINE, valores_criterios=CriteriosDaEstacao(**valores_criterios)
+        )
 
 
 def update_field(criterio: CriterioSelecionado):
@@ -109,12 +113,13 @@ def update_field(criterio: CriterioSelecionado):
 
 
 if __name__ == "__main__":
-    update_field(
-        {
-            "grupo": "Objetivos da Estação",
-            "nome_campo": "ish",
-            "descricao": "ISH na área de drenagem",
-            "unidade": "Classificação ISH",
-            "calculo": CalculoDoCriterioISHNaAreaDrenagem(),
-        }
-    )
+    # update_field(
+    #     {
+    #         "grupo": "Localização da Estação",
+    #         "nome_campo": "espacial",
+    #         "descricao": "Relevância espacial",
+    #         "unidade": "Adimensional",
+    #         "calculo": CalculoDoCriterioRelevanciaEspacial(),
+    #     }
+    # )
+    processa_criterios()
