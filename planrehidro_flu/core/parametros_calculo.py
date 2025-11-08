@@ -2,6 +2,7 @@ import calendar
 import json
 from abc import ABC, abstractmethod
 from functools import cache
+from typing import cast
 
 from planrehidro_flu.core.models import EstacaoHidro
 from planrehidro_flu.core.params_funcoes_suporte import (
@@ -60,28 +61,26 @@ class CalculoDoCriterioRelevanciaEspacial(CalculoDoCriterio):
         if not estacoes_a_montante:
             return 1.0
 
-        estacoes_a_nao_computar = []
+        estacoes_a_computar = []
         for est_mont in estacoes_a_montante:
             cocursodags_jusante = localiza_cocursodags_de_jusante(est_mont.cobacia)
             cobacias_jusante = [
-                est_jus.cobacia
+                est_jus.codigo
                 for est_jus in estacoes_a_montante
                 if est_jus.cocursodag in cocursodags_jusante
-                and est_jus.cobacia < est_mont.cobacia
+                and est_jus.codigo != est_mont.codigo
+                and est_jus.cobacia <= est_mont.cobacia
+                and cast(float, est_jus.area_drenagem)
+                > cast(float, est_mont.area_drenagem)
             ]
-            if cobacias_jusante:
-                estacoes_a_nao_computar.append(est_mont.codigo)
+            if not cobacias_jusante:
+                estacoes_a_computar.append(est_mont)
 
-        soma_areas_drenagens = sum(
-            [
-                est.area_drenagem
-                for est in estacoes_a_montante
-                if est.codigo not in estacoes_a_nao_computar
-                and est.area_drenagem is not None
-            ]
+        soma_areas_drenagens_nao_repetidas = sum(
+            set([cast(float, est.area_drenagem) for est in estacoes_a_computar])
         )
 
-        return 1 - (soma_areas_drenagens / estacao.area_drenagem_km2)
+        return 1 - (soma_areas_drenagens_nao_repetidas / estacao.area_drenagem_km2)
 
 
 class CalculoDoCriterioDensidadeEstacoes(CalculoDoCriterio):

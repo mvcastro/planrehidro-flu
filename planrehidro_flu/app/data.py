@@ -25,6 +25,7 @@ def get_engine():
 def get_dados_criterios(_engine) -> list[dict]:
     criterios = retorna_criterios_das_estacoes(_engine)
     dict_criterios = [criterio.to_dict() for criterio in criterios]
+    print(dict_criterios[:5])
     # Formatando dados do Critéio ish ->
     # Mínimo e Baixo = 1 / Médio, Alto e Máximo = 0
     formatacao_ish = {
@@ -35,7 +36,7 @@ def get_dados_criterios(_engine) -> list[dict]:
         "Máximo": 0,
     }
     for criterio in dict_criterios:
-        criterio["ish"] = formatacao_ish[criterio["ish"]]
+            criterio["ish"] = formatacao_ish[criterio["ish"]]
     return dict_criterios
 
 

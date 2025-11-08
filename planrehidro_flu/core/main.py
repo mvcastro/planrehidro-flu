@@ -2,6 +2,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from tqdm import tqdm
 
+from planrehidro_flu.core.parametros_calculo import (
+    CalculoDoCriterioProximidadeEstacaoRHNRCenario1,
+    CalculoDoCriterioProximidadeEstacaoRHNRCenario2,
+    CalculoDoCriterioProximidadeEstacaoSetorEletrico,
+)
 from planrehidro_flu.core.parametros_multicriterio import (
     CriterioSelecionado,
     parametros_multicriterio,
@@ -59,7 +64,7 @@ def populate_info_tables() -> None:
 
 
 def processa_criterios() -> None:
-    Base.metadata.create_all(ENGINE, tables=[CriteriosDaEstacao.__table__])
+    # Base.metadata.create_all(ENGINE, tables=[CriteriosDaEstacao.__table__])
 
     hidro = HidroDWReader()
     inventario = hidro.cria_inventario_estacao_hidro()
@@ -81,7 +86,7 @@ def processa_criterios() -> None:
                 print(
                     f"Erro ao processar critérios para a estação {estacao.codigo}: {e}"
                 )
-                valores_criterios[criterio["nome_campo"]] = None
+                valores_criterios[criterio["nome_campo"]] = None  # type: ignore
 
         insere_criterios_da_estacao(
             engine=ENGINE, valores_criterios=CriteriosDaEstacao(**valores_criterios)
@@ -113,13 +118,31 @@ def update_field(criterio: CriterioSelecionado):
 
 
 if __name__ == "__main__":
-    # update_field(
-    #     {
-    #         "grupo": "Localização da Estação",
-    #         "nome_campo": "espacial",
-    #         "descricao": "Relevância espacial",
-    #         "unidade": "Adimensional",
-    #         "calculo": CalculoDoCriterioRelevanciaEspacial(),
-    #     }
-    # )
-    processa_criterios()
+    update_field(
+        {
+            "grupo": "Localização da Estação",
+            "nome_campo": "rhnr_c1",
+            "descricao": "Proximidade à estação da RHNR",
+            "unidade": "booleano",
+            "calculo": CalculoDoCriterioProximidadeEstacaoRHNRCenario1(),
+        }
+    )
+    update_field(
+        {
+            "grupo": "Localização da Estação",
+            "nome_campo": "rhnr_c2",
+            "descricao": "Proximidade à estação da RHNR",
+            "unidade": "booleano",
+            "calculo": CalculoDoCriterioProximidadeEstacaoRHNRCenario2(),
+        }
+    )
+    update_field(
+        {
+            "grupo": "Localização da Estação",
+            "nome_campo": "est_energia",
+            "descricao": "Proximidade à estação do Setor Elétrico",
+            "unidade": "booleano",
+            "calculo": CalculoDoCriterioProximidadeEstacaoSetorEletrico(),
+        }
+    )
+    # processa_criterios()

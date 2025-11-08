@@ -78,7 +78,7 @@ class PostgresReader:
         cocursodag = cobacia_to_cocursodag(cobacia=cobacia)
         with Session(self.engine) as session:
             query = select(classe_href).where(
-                classe_href.cobacia > cobacia,
+                classe_href.cobacia >= cobacia,
                 classe_href.cocursodag.like(f"{cocursodag}%%"),
             )
             response = session.execute(query).scalars().all()
@@ -157,14 +157,16 @@ class PostgresReader:
                     Responsavel.responsavel_codigo == ResponsavelEnum.ANA,
                     classe_href.cobacia >= estacao_href.cobacia,
                     classe_href.codigo != estacao_href.codigo,
+                    classe_href.area_drenagem <= estacao_href.area_drenagem,
                     classe_href.cocursodag.like(f"{estacao_href.cocursodag}%%"),
-                    classe_href.area_drenagem.is_not(None),
+                    # classe_href.area_drenagem.is_not(None),
                     or_(
                         EstacaoFlu.descricao.not_like("%%HIDROOBSERVA%%"),
                         EstacaoFlu.descricao.is_(None),
                     ),
                 )
             )
+            
             query2 = (
                 select(classe_href)
                 .join(EstacaoFlu, EstacaoFlu.codigo == classe_href.codigo)
@@ -178,7 +180,8 @@ class PostgresReader:
                     classe_href.cobacia >= estacao_href.cobacia,
                     classe_href.cocursodag.like(f"{estacao_href.cocursodag}%%"),
                     classe_href.codigo != estacao_href.codigo,
-                    classe_href.area_drenagem.is_not(None),
+                    classe_href.area_drenagem <= estacao_href.area_drenagem,
+                    # classe_href.area_drenagem.is_not(None),
                 )
             )
             response1 = session.execute(query1).scalars().all()
@@ -187,8 +190,8 @@ class PostgresReader:
         return [
             estacao
             for estacao in list(response1) + list(response2)
-            if cast(float, estacao.area_drenagem)
-            <= cast(float, estacao_href.area_drenagem)
+            # if cast(float, estacao.area_drenagem)
+            # <= cast(float, estacao_href.area_drenagem)
         ]
 
     def retorno_polo_nacional_por_corrdenadas(
