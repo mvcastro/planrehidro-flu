@@ -54,33 +54,35 @@ def gera_criterios_para_processamento(session_state: dict) -> CriteriosProcessam
 
 
 def gera_graficos_dos_resultados(df_resultado: pd.DataFrame) -> None:
-    st.plotly_chart(
-        go.Figure(
-            data=go.Histogram(x=df_resultado["Total"]),
-            layout=go.Layout(
-                title=go.layout.Title(text="Histograma da Pontuação Total das Estações")
-            ),
-        ).update_layout(
-            xaxis=dict(title="Pontuação Total"), yaxis=dict(title="Frequência")
+    for cenario in ["C1", "C2"]:
+        st.plotly_chart(
+            go.Figure(
+                data=go.Histogram(x=df_resultado[f"Total-{cenario}"]),
+                layout=go.Layout(
+                    title=go.layout.Title(text=f"Histograma da Pontuação Total das Estações - {cenario}")
+                ),
+            ).update_layout(
+                xaxis=dict(title="Pontuação Total"), yaxis=dict(title="Frequência")
+            )
         )
-    )
 
-    x_cdf, y_cdf = cdf(df_resultado["Total"])
-    st.plotly_chart(
-        go.Figure(
-            data=go.Scatter(
-                x=x_cdf,
-                y=y_cdf,
-            ),
-            layout=go.Layout(
-                title=go.layout.Title(
-                    text="Curva de Permanência da Pontuação Total das Estações"
-                )
-            ),
-        ).update_layout(
-            xaxis=dict(title="Pontuação Total"), yaxis=dict(title="Permanência")
+
+        x_cdf, y_cdf = cdf(df_resultado[f"Total-{cenario}"])
+        st.plotly_chart(
+            go.Figure(
+                data=go.Scatter(
+                    x=x_cdf,
+                    y=y_cdf,
+                ),
+                layout=go.Layout(
+                    title=go.layout.Title(
+                        text=f"Curva de Permanência da Pontuação Total das Estações - {cenario}"
+                    )
+                ),
+            ).update_layout(
+                xaxis=dict(title="Pontuação Total"), yaxis=dict(title="Permanência")
+            )
         )
-    )
 
 
 def gera_resultados(df_resultado: None | pd.DataFrame = None):

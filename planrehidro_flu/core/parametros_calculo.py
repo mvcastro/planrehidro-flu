@@ -275,6 +275,7 @@ class CalculoDoCriterioProximidadeEstacaoSetorEletrico(CalculoDoCriterio):
 
         estacoes_no_rio = {
             est.codigo: est.nuareamont for est in estacoes_montante + estacoes_jusante
+            if est.codigo != estacao.codigo
         }
         estacoes_hidro = hidro_reader.retorna_estacoes_por_codigo(
             codigos=list(estacoes_no_rio.keys())
@@ -285,6 +286,9 @@ class CalculoDoCriterioProximidadeEstacaoSetorEletrico(CalculoDoCriterio):
             for est in estacoes_hidro
             if est.TipoRedeEnergetica == 1 and est.Operando == 1
         ]
+
+        if not estacoes_hidro_energia:
+            return None
 
         proporcao_area_estacoes_setor_eletrico = []
         for est in estacoes_hidro_energia:

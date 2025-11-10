@@ -5,13 +5,13 @@ import streamlit as st
 from planrehidro_flu.app.config_pesos_params import (
     default_page_config_params_points,
     default_page_config_params_weights,
+    gera_resultados,
 )
 from planrehidro_flu.app.pages import (
     default_page_stats_categorical_params,
     default_page_stats_numerical_params,
     get_page_function,
 )
-from planrehidro_flu.app.config_pesos_params import gera_resultados
 from planrehidro_flu.core.parametros_multicriterio import NomeCampo
 
 st.set_page_config(page_title="PlanReHidro", page_icon="💧", layout="wide")
@@ -24,16 +24,11 @@ class PageData(TypedDict):
 
 
 categorical_pages: list[PageData] = [
-    {
-        "campo": "est_energia",
-        "title": "Próximo à estação do Setor Elétrico",
-        "icon": ":material/finance:",
-    },
-    {
-        "campo": "cheias",
-        "title": "Em Trecho Vulnerável a cheias",
-        "icon": ":material/finance:",
-    },
+    # {
+    #     "campo": "cheias",
+    #     "title": "Em Trecho Vulnerável a cheias",
+    #     "icon": ":material/finance:",
+    # },
     {
         "campo": "ish",
         "title": "ISH na Área de Drenagem",
@@ -61,6 +56,21 @@ numerical_pages: list[PageData] = [
     {
         "campo": "espacial",
         "title": "Relevância Espacial",
+        "icon": ":material/finance:",
+    },
+    {
+        "campo": "est_energia",
+        "title": "Próximo à estação do Setor Elétrico",
+        "icon": ":material/finance:",
+    },
+    {
+        "campo": "rhnr_c1",
+        "title": "Proximidade à estação da RHNR - Cenário 1",
+        "icon": ":material/finance:",
+    },
+    {
+        "campo": "rhnr_c2",
+        "title": "Proximidade à estação da RHNR - Cenário 2",
         "icon": ":material/finance:",
     },
     {
@@ -126,13 +136,8 @@ pg = st.navigation(
                 title="Critérios",
                 icon=":material/settings:",
             ),
-            st.Page(
-                gera_resultados,
-                title='Resultados',
-                icon=":material/rubric:"
-            ),
+            st.Page(gera_resultados, title="Resultados", icon=":material/rubric:"),
         ],
-
     }
 )
 pg.run()

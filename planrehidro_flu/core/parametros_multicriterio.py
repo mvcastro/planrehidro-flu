@@ -14,7 +14,6 @@ from planrehidro_flu.core.parametros_calculo import (
     CalculoDoCriterioProximidadeEstacaoSetorEletrico,
     CalculoDoCriterioRelevanciaEspacial,
     CalculoDoCriterioTrechoDeNavegacao,
-    CalculoDoCriterioTrechoVulnerabilidadeCheias,
 )
 
 Grupo = Literal[
@@ -28,7 +27,6 @@ NomeCampo = Literal[
     "codigo_estacao",
     "area_dren",
     "espacial",
-    "cheias",
     "ish",
     "semiarido",
     "irrigacao",
@@ -67,13 +65,6 @@ parametros_multicriterio: list[CriterioSelecionado] = [
     },
     {
         "grupo": "Objetivos da Estação",
-        "nome_campo": "cheias",
-        "descricao": "Trecho com vulnerabilidade a cheias",
-        "unidade": "booleano",
-        "calculo": CalculoDoCriterioTrechoVulnerabilidadeCheias(),
-    },
-    {
-        "grupo": "Objetivos da Estação",
         "nome_campo": "ish",
         "descricao": "ISH na área de drenagem",
         "unidade": "Classificação ISH",
@@ -93,32 +84,25 @@ parametros_multicriterio: list[CriterioSelecionado] = [
         "unidade": "booleano",
         "calculo": CalculoDoCriterioEmPoloDeIrrigacao(),
     },
-    # {
-    #     "grupo": "Localização da Estação",
-    #     "nome_campo": "rhnr",
-    #     "descricao": "Proximidade à estação da RHNR",
-    #     "unidade": "objetivos da RHRN",
-    #     "calculo": CalculoDoCriterioProximidadeObjetivosRHNR(),
-    # },
     {
         "grupo": "Localização da Estação",
         "nome_campo": "rhnr_c1",
-        "descricao": "Proximidade à estação da RHNR",
-        "unidade": "booleano",
+        "descricao": "Proximidade à estação da RHNR - Cenário1",
+        "unidade": "Relação entre áreas de drenagem (%)",
         "calculo": CalculoDoCriterioProximidadeEstacaoRHNRCenario1(),
     },
     {
         "grupo": "Localização da Estação",
         "nome_campo": "rhnr_c2",
-        "descricao": "Proximidade à estação da RHNR",
-        "unidade": "booleano",
+        "descricao": "Proximidade à estação da RHNR - Cenário2",
+        "unidade": "Relação entre áreas de drenagem (%)",
         "calculo": CalculoDoCriterioProximidadeEstacaoRHNRCenario2(),
     },
     {
         "grupo": "Localização da Estação",
         "nome_campo": "est_energia",
         "descricao": "Proximidade à estação do Setor Elétrico",
-        "unidade": "booleano",
+        "unidade": "Relação entre áreas de drenagem (%)",
         "calculo": CalculoDoCriterioProximidadeEstacaoSetorEletrico(),
     },
     {
@@ -149,24 +133,6 @@ parametros_multicriterio: list[CriterioSelecionado] = [
         "unidade": "Medições/Ano",
         "calculo": CalculoDoCriterioDescargaLiquidaAnual(),
     },
-    # {
-    #     "grupo": "Qualidade dos Dados da Estação",
-    #     "criterio": "Descarga Líquida",
-    #     "unidade": "booleano",
-    #     "calculo": CalculoDoCriterioDescargaLiquida(),
-    # },
-    # {
-    #     "grupo": "Qualidade dos Dados da Estação",
-    #     "criterio": "Telemetria",
-    #     "unidade": "booleano",
-    #     "calculo": CalculoDoCriterioTelemetrica(),
-    # },
-    # {
-    #     "grupo": "Qualidade dos Dados da Estação",
-    #     "criterio": "Total de medições de descarga líquida",
-    #     "unidade": "medições",
-    #     "calculo": CalculoDoCriterioTotalDeDescargasLiquidas(),
-    # },
 ]
 
 

@@ -2,9 +2,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from tqdm import tqdm
 
+from planrehidro_flu.core.models import EstacaoHidro
 from planrehidro_flu.core.parametros_calculo import (
-    CalculoDoCriterioProximidadeEstacaoRHNRCenario1,
-    CalculoDoCriterioProximidadeEstacaoRHNRCenario2,
     CalculoDoCriterioProximidadeEstacaoSetorEletrico,
 )
 from planrehidro_flu.core.parametros_multicriterio import (
@@ -118,31 +117,13 @@ def update_field(criterio: CriterioSelecionado):
 
 
 if __name__ == "__main__":
-    update_field(
-        {
-            "grupo": "Localização da Estação",
-            "nome_campo": "rhnr_c1",
-            "descricao": "Proximidade à estação da RHNR",
-            "unidade": "booleano",
-            "calculo": CalculoDoCriterioProximidadeEstacaoRHNRCenario1(),
-        }
+    hidro_reader = HidroDWReader()
+    inventario = hidro_reader.cria_inventario_estacao_hidro()
+    estacao: EstacaoHidro = [e for e in inventario if e.codigo == 64897500][0]
+
+    valor_criterio = CalculoDoCriterioProximidadeEstacaoSetorEletrico().calcular(
+        estacao
     )
-    update_field(
-        {
-            "grupo": "Localização da Estação",
-            "nome_campo": "rhnr_c2",
-            "descricao": "Proximidade à estação da RHNR",
-            "unidade": "booleano",
-            "calculo": CalculoDoCriterioProximidadeEstacaoRHNRCenario2(),
-        }
-    )
-    update_field(
-        {
-            "grupo": "Localização da Estação",
-            "nome_campo": "est_energia",
-            "descricao": "Proximidade à estação do Setor Elétrico",
-            "unidade": "booleano",
-            "calculo": CalculoDoCriterioProximidadeEstacaoSetorEletrico(),
-        }
-    )
+    print(valor_criterio)
+
     # processa_criterios()
