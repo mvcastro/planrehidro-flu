@@ -1,13 +1,14 @@
+from pathlib import Path
 from typing import TypedDict
 
 import streamlit as st
 
-from planrehidro_flu.app.config_pesos_params import (
+from planrehidro_flu.app.paginas.config_pesos_params import (
     default_page_config_params_points,
     default_page_config_params_weights,
     gera_resultados,
 )
-from planrehidro_flu.app.pages import (
+from planrehidro_flu.app.paginas.default_pages import (
     default_page_stats_categorical_params,
     default_page_stats_numerical_params,
     get_page_function,
@@ -17,6 +18,9 @@ from planrehidro_flu.core.parametros_multicriterio import NomeCampo
 st.set_page_config(page_title="PlanReHidro", page_icon="💧", layout="wide")
 
 
+FOLDER_PAGES = Path("paginas")
+
+
 class PageData(TypedDict):
     campo: NomeCampo
     title: str
@@ -24,11 +28,6 @@ class PageData(TypedDict):
 
 
 categorical_pages: list[PageData] = [
-    # {
-    #     "campo": "cheias",
-    #     "title": "Em Trecho Vulnerável a cheias",
-    #     "icon": ":material/finance:",
-    # },
     {
         "campo": "ish",
         "title": "ISH na Área de Drenagem",
@@ -93,10 +92,14 @@ numerical_pages: list[PageData] = [
 
 pg = st.navigation(
     {
-        "Mapa": [st.Page("mapa.py", title="Estações Fluviométricas", icon="📍")],
+        # "Mapa": [
+        #     st.Page(
+        #         FOLDER_PAGES / "mapa.py", title="Estações Fluviométricas", icon="📍"
+        #     )
+        # ],
         "Dados": [
             st.Page(
-                "dados_tabulares.py",
+                FOLDER_PAGES / "dados_tabulares.py",
                 title="Tabela de Dados",
                 icon=":material/data_table:",
             )

@@ -13,10 +13,12 @@ from planrehidro_flu.app.consistencia_dataframe import (
     checa_consistencia_valores_da_classe,
 )
 from planrehidro_flu.app.data import (
-    get_retorna_estacoes_rhnr_cenario1,
-    get_retorna_estacoes_rhnr_cenario2,
+    cplar_reader,
+    get_dados_adicionais_das_estacoes,
+    get_estacoes_rhnr_cenario1,
+    get_estacoes_rhnr_cenario2,
 )
-from planrehidro_flu.app.pages import cdf
+from planrehidro_flu.app.paginas.default_pages import cdf
 from planrehidro_flu.app.params_default_values import (
     DEFAULT_PARAMS_CLASSES,
     DEFAULT_WEIGTH_PARAMS,
@@ -61,10 +63,8 @@ def gera_criterios_para_processamento(session_state: dict) -> CriteriosProcessam
 def gera_graficos_dos_resultados(
     df_resultado: pd.DataFrame, cenarios: list[Literal["C1", "C2"]] | None = None
 ) -> None:
-    if cenarios is None:
-        cenarios = ["C1", "C2"]
-
-    for cenario in cenarios:
+    cenarios_selecionados = cenarios or ["C1", "C2"]
+    for cenario in cenarios_selecionados:
         st.plotly_chart(
             go.Figure(
                 data=go.Histogram(x=df_resultado[f"Total-{cenario}"]),
@@ -96,6 +96,22 @@ def gera_graficos_dos_resultados(
         )
 
 
+@st.cache_data
+def gera_dataframe_com_dados_finais(df: pd.DataFrame) -> pd.DataFrame:
+    df_final = df.copy()
+    df_c1 = get_estacoes_rhnr_cenario1(_cplar_reader=cplar_reader)
+    df_c2 = get_estacoes_rhnr_cenario2(_cplar_reader=cplar_reader)
+    df_final["Integra RHNR-C1?"] = df_final["codigo_estacao"].isin(df_c1["codigo"])
+    df_final["Integra RHNR-C2?"] = df_final["codigo_estacao"].isin(df_c2["codigo"])
+
+    df_dados_adicionais = get_dados_adicionais_das_estacoes(_cplar_reader=cplar_reader)
+
+    return df_dados_adicionais.merge(
+        df_final, how="right", left_on="codigo", right_on="codigo_estacao"
+    ).drop(columns=["codigo_estacao"])
+
+
+
 def gera_resultados(df_resultado: None | pd.DataFrame = None):
     st.header("Resultados do Processamento")
     if "resultado" not in st.session_state:
@@ -117,15 +133,7 @@ def gera_resultados(df_resultado: None | pd.DataFrame = None):
                 horizontal=True,
             )
 
-            df_final = df_resultado.copy()
-            df_c1 = get_retorna_estacoes_rhnr_cenario1()
-            df_c2 = get_retorna_estacoes_rhnr_cenario2()
-            df_final["Integra RHNR-C1?"] = df_final["codigo_estacao"].isin(
-                df_c1["codigo"]
-            )
-            df_final["Integra RHNR-C2?"] = df_final["codigo_estacao"].isin(
-                df_c2["codigo"]
-            )
+            df_final = gera_dataframe_com_dados_finais(df_resultado)
 
             if cenarios == opcoes_cenarios[1]:
                 df_tabela = df_final[~df_final["Integra RHNR-C1?"]]
@@ -137,7 +145,6 @@ def gera_resultados(df_resultado: None | pd.DataFrame = None):
                 df_tabela = df_final
                 gera_graficos_dos_resultados(df_tabela)
 
-            
             filtro = st.selectbox(
                 label="Selecione a estação para ver o seu resultado:",
                 options=df_resultado["codigo_estacao"],
@@ -149,13 +156,13 @@ def gera_resultados(df_resultado: None | pd.DataFrame = None):
             else:
                 st.dataframe(df_tabela, hide_index=True)
 
-                st.download_button(
-                    label="Download da Tabela",
-                    data=to_excel(df_tabela),
-                    mime="application/vnd.ms-excel",
-                    file_name="priorizacao_estacoes_flu_rhnr.xlsx",
-                    type="primary",
-                )
+            st.download_button(
+                label="Download da Tabela",
+                data=to_excel(df_tabela),
+                mime="application/vnd.ms-excel",
+                file_name="priorizacao_estacoes_flu_rhnr.xlsx",
+                type="primary",
+            )
 
 
 def to_excel(df):

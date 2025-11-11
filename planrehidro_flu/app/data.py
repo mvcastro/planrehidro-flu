@@ -2,6 +2,7 @@ from typing import Sequence
 
 import pandas as pd
 import streamlit as st
+from sqlalchemy import Engine
 
 from planrehidro_flu.core.parametros_multicriterio import parametros_multicriterio
 from planrehidro_flu.databases.cplar.bd_cplar_reader import PostgresReader
@@ -18,8 +19,13 @@ from planrehidro_flu.databases.internal.models import (
 
 
 @st.cache_resource
-def get_engine():
+def get_internal_engine() -> Engine:
     return ENGINE
+
+
+@st.cache_resource
+def get_cplar_reader() -> PostgresReader:
+    return PostgresReader()
 
 
 @st.cache_data
@@ -69,19 +75,27 @@ def get_data_dictionary() -> pd.DataFrame:
 
 
 @st.cache_data
-def get_retorna_estacoes_rhnr_cenario1() -> pd.DataFrame:
-    cplar_reader = PostgresReader()
-    estacoes_c1 = cplar_reader.retorna_estacoes_rhnr_cenario1()
+def get_estacoes_rhnr_cenario1(_cplar_reader: PostgresReader) -> pd.DataFrame:
+    estacoes_c1 = _cplar_reader.retorna_estacoes_rhnr_cenario1()
     return pd.DataFrame([estacao.to_dict() for estacao in estacoes_c1])
 
+
 @st.cache_data
-def get_retorna_estacoes_rhnr_cenario2() -> pd.DataFrame:
-    cplar_reader = PostgresReader()
-    estacoes_c2 = cplar_reader.retorna_estacoes_rhnr_cenario2()
+def get_estacoes_rhnr_cenario2(_cplar_reader: PostgresReader) -> pd.DataFrame:
+    estacoes_c2 = _cplar_reader.retorna_estacoes_rhnr_cenario2()
     return pd.DataFrame([estacao.to_dict() for estacao in estacoes_c2])
 
 
-engine = get_engine()
-df_criterios_rh = get_dados_criterios_por_rh(engine)
+@st.cache_data
+def get_dados_adicionais_das_estacoes(
+    _cplar_reader: PostgresReader,
+) -> pd.DataFrame:
+    return _cplar_reader.retorna_dados_adicionais_estacoes()
+
+
+internal_engine = get_internal_engine()
+df_criterios_rh = get_dados_criterios_por_rh(internal_engine)
+dados_criterios_estacoes = get_dados_criterios(internal_engine)
 df_dicionario = get_data_dictionary()
-dados_criterios_estacoes = get_dados_criterios(engine)
+
+cplar_reader = get_cplar_reader()

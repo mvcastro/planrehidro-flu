@@ -1,9 +1,11 @@
 import os
+from operator import and_
 from typing import Sequence, cast
 
 import geopandas as gpd
+import pandas as pd
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, or_, select, text
+from sqlalchemy import case, create_engine, or_, select, text
 from sqlalchemy.orm import Session
 
 from planrehidro_flu.databases.cplar.models import (
@@ -166,7 +168,7 @@ class PostgresReader:
                     ),
                 )
             )
-            
+
             query2 = (
                 select(classe_href)
                 .join(EstacaoFlu, EstacaoFlu.codigo == classe_href.codigo)
@@ -301,3 +303,107 @@ class PostgresReader:
         Apenas Estações Propostas para Integrar a RHNR.
         """
         return list(self.retorna_estacoes_propostas_rhnr())
+
+    def retorna_dados_adicionais_estacoes(self) -> pd.DataFrame:
+        with Session(self.engine) as session:
+            response = session.execute(
+                select(
+                    EstacaoFlu.codigo,
+                    EstacaoFlu.bacia_codigo,
+                    EstacaoFlu.subbacia_codigo,
+                    Responsavel.responsavel_codigo,
+                    Operadora.operadora_codigo,
+                    case(
+                        (
+                            and_(
+                                Operadora.operadora_codigo == 82,
+                                Operadora.operadora_unidade in (1, 2),
+                            ),
+                            "PORTO VELHO - REPO",
+                        ),  # RONDÔNIA - ACRE / REPO
+                        (
+                            and_(
+                                Operadora.operadora_codigo == 82,
+                                Operadora.operadora_unidade == 3,
+                            ),
+                            "MANAUS - SUREG-MA",
+                        ),  # AMAZONAS / SUREG-MA
+                        (
+                            and_(
+                                Operadora.operadora_codigo == 82,
+                                Operadora.operadora_unidade == 5,
+                            ),
+                            "BELEM - SUREG-BR",
+                        ),  # PA / SUREG-BE
+                        (
+                            and_(
+                                Operadora.operadora_codigo == 82,
+                                Operadora.operadora_unidade == 8,
+                            ),
+                            "TERESINA - RETE",
+                        ),  # PI / RETE
+                        (
+                            and_(
+                                Operadora.operadora_codigo == 82,
+                                Operadora.operadora_unidade == 9,
+                            ),
+                            "FORTALEZA - REFO",
+                        ),  # CEARÁ / REFO
+                        (
+                            and_(
+                                Operadora.operadora_codigo == 82,
+                                Operadora.operadora_unidade == 12,
+                            ),
+                            "RECIFE - SUREG-RE",
+                        ),  # PE / SUREG-RE
+                        (
+                            and_(
+                                Operadora.operadora_codigo == 82,
+                                Operadora.operadora_unidade == 16,
+                            ),
+                            "SALVADOR - SUREG-SA",
+                        ),  # BA / SUREG-SA
+                        (
+                            and_(
+                                Operadora.operadora_codigo == 82,
+                                Operadora.operadora_unidade == 17,
+                            ),
+                            "BELO HORIZONTE - SUREG-BH",
+                        ),  # MG / SUREG-BH
+                        (
+                            and_(
+                                Operadora.operadora_codigo == 82,
+                                Operadora.operadora_unidade == 19,
+                            ),
+                            "RIO DE JANEIRO - ERJ",
+                        ),  # RJ / ERJ
+                        (
+                            and_(
+                                Operadora.operadora_codigo == 82,
+                                Operadora.operadora_unidade == 21,
+                            ),
+                            "SÃO PAULO - SUREG-SP",
+                        ),  # SP / SUREG-SP
+                        (
+                            and_(
+                                Operadora.operadora_codigo == 82,
+                                Operadora.operadora_unidade == 24,
+                            ),
+                            "PORTO ALEGRE - SUREG-PA",
+                        ),  # RIO GRANDE DO SUL / SUREG-PA
+                        (
+                            and_(
+                                Operadora.operadora_codigo == 82,
+                                Operadora.operadora_unidade == 26,
+                            ),
+                            "GOIÂNIA - SUREG-GO",
+                        ),  # GOÍAS / SUREG-GO
+                        else_=None,
+                    ).label("operadora_regional"),
+                    Operadora.operadora_unidade,
+                )
+                .join(Responsavel, Responsavel.codigo_estacao == EstacaoFlu.codigo)
+                .join(Operadora, Operadora.codigo_estacao == EstacaoFlu.codigo)
+            )
+            
+        return pd.DataFrame([row._asdict() for row in response])
