@@ -4,12 +4,17 @@ from typing import cast
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from typing_extensions import Literal
 
 from planrehidro_flu.app.consistencia_dataframe import (
     checa_consistencia_dado_categorico,
     checa_consistencia_entre_as_classes,
     checa_consistencia_pontuacao,
     checa_consistencia_valores_da_classe,
+)
+from planrehidro_flu.app.data import (
+    get_retorna_estacoes_rhnr_cenario1,
+    get_retorna_estacoes_rhnr_cenario2,
 )
 from planrehidro_flu.app.pages import cdf
 from planrehidro_flu.app.params_default_values import (
@@ -53,19 +58,25 @@ def gera_criterios_para_processamento(session_state: dict) -> CriteriosProcessam
     return criterios_proc
 
 
-def gera_graficos_dos_resultados(df_resultado: pd.DataFrame) -> None:
-    for cenario in ["C1", "C2"]:
+def gera_graficos_dos_resultados(
+    df_resultado: pd.DataFrame, cenarios: list[Literal["C1", "C2"]] | None = None
+) -> None:
+    if cenarios is None:
+        cenarios = ["C1", "C2"]
+
+    for cenario in cenarios:
         st.plotly_chart(
             go.Figure(
                 data=go.Histogram(x=df_resultado[f"Total-{cenario}"]),
                 layout=go.Layout(
-                    title=go.layout.Title(text=f"Histograma da Pontuação Total das Estações - {cenario}")
+                    title=go.layout.Title(
+                        text=f"Histograma da Pontuação Total das Estações - {cenario}"
+                    )
                 ),
             ).update_layout(
                 xaxis=dict(title="Pontuação Total"), yaxis=dict(title="Frequência")
             )
         )
-
 
         x_cdf, y_cdf = cdf(df_resultado[f"Total-{cenario}"])
         st.plotly_chart(
@@ -94,20 +105,53 @@ def gera_resultados(df_resultado: None | pd.DataFrame = None):
         if df_resultado is None:
             st.warning("Parâmetros não configurados!", icon="⚠️")
         else:
-            gera_graficos_dos_resultados(df_resultado)
+            opcoes_cenarios = [
+                "Todas as estações ",
+                "Ocultar estações RHNR - Cenário 1",
+                "Ocultar estações RHNR - Cenário 2",
+            ]
+            cenarios = st.radio(
+                "Filtro das estações que integram a RHNR:",
+                opcoes_cenarios,
+                index=0,
+                horizontal=True,
+            )
+
+            df_final = df_resultado.copy()
+            df_c1 = get_retorna_estacoes_rhnr_cenario1()
+            df_c2 = get_retorna_estacoes_rhnr_cenario2()
+            df_final["Integra RHNR-C1?"] = df_final["codigo_estacao"].isin(
+                df_c1["codigo"]
+            )
+            df_final["Integra RHNR-C2?"] = df_final["codigo_estacao"].isin(
+                df_c2["codigo"]
+            )
+
+            if cenarios == opcoes_cenarios[1]:
+                df_tabela = df_final[~df_final["Integra RHNR-C1?"]]
+                gera_graficos_dos_resultados(df_tabela, cenarios=["C1"])
+            elif cenarios == opcoes_cenarios[2]:
+                df_tabela = df_final[~df_final["Integra RHNR-C2?"]]
+                gera_graficos_dos_resultados(df_tabela, cenarios=["C2"])
+            else:
+                df_tabela = df_final
+                gera_graficos_dos_resultados(df_tabela)
+
+            
             filtro = st.selectbox(
                 label="Selecione a estação para ver o seu resultado:",
                 options=df_resultado["codigo_estacao"],
                 index=None,
             )
+
             if filtro:
-                st.dataframe(df_resultado[df_resultado["codigo_estacao"] == filtro])
+                st.dataframe(df_tabela[df_tabela["codigo_estacao"] == filtro])
             else:
-                st.dataframe(df_resultado)
+                st.dataframe(df_tabela, hide_index=True)
 
                 st.download_button(
                     label="Download da Tabela",
-                    data=to_excel(df_resultado),
+                    data=to_excel(df_tabela),
                     mime="application/vnd.ms-excel",
                     file_name="priorizacao_estacoes_flu_rhnr.xlsx",
                     type="primary",

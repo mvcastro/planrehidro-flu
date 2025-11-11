@@ -21,13 +21,8 @@ option = st.selectbox(
 
 if option:
     st.dataframe(
-        df_criterios_rh[list(get_args(NomeCampo))][
-            df_criterios_rh.codigo_estacao == option
-        ],
+        df_criterios_rh[list(get_args(NomeCampo))][df_criterios_rh.codigo_estacao == option],
         hide_index=True,
     )
 else:
     st.dataframe(df_criterios_rh[list(get_args(NomeCampo))], hide_index=True)
-
-
-

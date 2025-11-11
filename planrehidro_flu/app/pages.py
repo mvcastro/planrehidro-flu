@@ -28,8 +28,32 @@ def default_page_stats_categorical_params(nome_campo: NomeCampo) -> None:
     criterio = search_criterio_props(nome_campo)
     criterio_str = f"{criterio['descricao']} [{criterio['unidade']}]"
 
-    labels = df_criterios_rh[nome_campo].unique()
-    values = df_criterios_rh[nome_campo].value_counts()
+    df = df_criterios_rh.copy()
+
+    classes_ish = None
+    if nome_campo == "ish":
+        classes_ish = {
+            "Máximo": "1.Máximo",
+            "Alto": "2.Alto",
+            "Médio": "3.Médio",
+            "Baixo": "4.Baixo",
+            "Mínimo": "5.Mínimo",
+        }
+
+        df["ish"] = df["ish"].replace(classes_ish)
+        color_map = [
+            "#2b83ba",
+            "#abdda4",
+            "#ffffbf",
+            "#fdae61",
+            "#d7191c",
+        ]
+    else:
+        df[nome_campo] = df[nome_campo].replace({True: "Sim", False: "Não", None: "Não"})
+        color_map = ["red", "blue"]
+
+    labels = sorted(df[nome_campo].unique().tolist())
+    values = df[nome_campo].value_counts().sort_index()
 
     st.title("Resultados Globais")
     st.subheader(f"Critério: {criterio_str}")
@@ -41,13 +65,15 @@ def default_page_stats_categorical_params(nome_campo: NomeCampo) -> None:
     with tab1:
         st.plotly_chart(
             go.Figure(
-                data=go.Pie(labels=labels, values=values, hole=0.3),
+                data=go.Pie(
+                    labels=labels, values=values, marker={"colors": color_map}, hole=0.3
+                ),
                 layout=go.Layout(title=go.layout.Title(text="Gráfico de Pizza")),
             )
         )
 
     with tab2:
-        rh_names = df_criterios_rh["nome_rh"].unique()
+        rh_names = df["nome_rh"].unique()
 
         fig = make_subplots(
             rows=4,
@@ -64,14 +90,29 @@ def default_page_stats_categorical_params(nome_campo: NomeCampo) -> None:
         n_subplot = 1
         row = 1
         for _, nome_rh in enumerate(rh_names):
-            data = df_criterios_rh[df_criterios_rh["nome_rh"] == nome_rh]
+            data = df[df["nome_rh"] == nome_rh].copy()
+
+            if classes_ish:
+                classes = data["ish"].unique()
+                for classe in classes_ish.values():
+                    if classe not in classes:
+                        data = pd.concat(
+                            [data, pd.DataFrame({nome_campo: [classe]})],
+                            ignore_index=True,
+                        )
 
             labels_rh = data[nome_campo].unique()
             values_rh = data[nome_campo].value_counts()
 
             col = n_subplot % 3 if n_subplot % 3 != 0 else 3
             fig.add_trace(
-                go.Pie(labels=labels_rh, values=values_rh, name=nome_rh, hole=0.4),
+                go.Pie(
+                    labels=labels_rh,
+                    values=values_rh,
+                    name=nome_rh,
+                    marker={"colors": color_map},
+                    hole=0.4,
+                ),
                 row=row,
                 col=col,
             )

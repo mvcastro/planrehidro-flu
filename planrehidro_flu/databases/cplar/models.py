@@ -5,7 +5,9 @@ from sqlalchemy import ForeignKey, SmallInteger, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
-class Base(DeclarativeBase): ...
+class Base(DeclarativeBase):
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
 TipoHidroRef = Literal["Área de Drenagem", "Nome do Rio", "Demais Estações", "Manual"]

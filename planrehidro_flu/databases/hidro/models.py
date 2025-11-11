@@ -8,7 +8,9 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from planrehidro_flu.databases.hidro.enums import TipoDaEstacao
 
 
-class Base(DeclarativeBase): ...
+class Base(DeclarativeBase):
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
 class Estacao(Base):

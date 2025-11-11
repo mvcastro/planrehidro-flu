@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from planrehidro_flu.core.parametros_multicriterio import parametros_multicriterio
+from planrehidro_flu.databases.cplar.bd_cplar_reader import PostgresReader
 from planrehidro_flu.databases.internal.database_access import (
     retorna_criterios_das_estacoes,
     retorna_criterios_por_rh,
@@ -35,7 +36,7 @@ def get_dados_criterios(_engine) -> list[dict]:
         "Máximo": 0,
     }
     for criterio in dict_criterios:
-            criterio["ish"] = formatacao_ish[criterio["ish"]]
+        criterio["ish"] = formatacao_ish[criterio["ish"]]
     return dict_criterios
 
 
@@ -65,6 +66,19 @@ def get_data_dictionary() -> pd.DataFrame:
             {key: value for key, value in params.items() if key != "calculo"}
         )
     return pd.DataFrame(parametros).sort_values("grupo")
+
+
+@st.cache_data
+def get_retorna_estacoes_rhnr_cenario1() -> pd.DataFrame:
+    cplar_reader = PostgresReader()
+    estacoes_c1 = cplar_reader.retorna_estacoes_rhnr_cenario1()
+    return pd.DataFrame([estacao.to_dict() for estacao in estacoes_c1])
+
+@st.cache_data
+def get_retorna_estacoes_rhnr_cenario2() -> pd.DataFrame:
+    cplar_reader = PostgresReader()
+    estacoes_c2 = cplar_reader.retorna_estacoes_rhnr_cenario2()
+    return pd.DataFrame([estacao.to_dict() for estacao in estacoes_c2])
 
 
 engine = get_engine()

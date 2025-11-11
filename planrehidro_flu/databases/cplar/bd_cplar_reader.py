@@ -279,7 +279,7 @@ class PostgresReader:
     def retorna_estacoes_rhnr_cenario1(self) -> list[EstacaoFlu]:
         """
         Retorna as estações RHNR do cenário 1:
-        Seleção Inicial + Estações Implementadas +  Estações da Revisaõ par Integrar a RHNR.
+        Seleção Inicial + Estações Implementadas + Estações da Revisaõ para Integrar a RHNR.
         """
         response1 = self.retorna_estacoes_rhnr_selecao_inicial()
         response2 = self.retorna_estacoes_implementadas_rhnr()

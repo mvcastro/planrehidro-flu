@@ -8,7 +8,9 @@ from planrehidro_flu.databases.hidro.enums import TipoEstacao
 ENGINE = create_engine(f"sqlite:///{Path(__file__).parent / 'database.db'}")
 
 
-class Base(DeclarativeBase): ...
+class Base(DeclarativeBase):
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
 class InventarioEstacaoFluAna(Base):
@@ -66,8 +68,7 @@ class CriteriosDaEstacao(Base):
     rhnr_c1: Mapped[float] = mapped_column(nullable=True)
     rhnr_c2: Mapped[float] = mapped_column(nullable=True)
 
-    def to_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 
 
 class RegiaoHidrografica(Base):
