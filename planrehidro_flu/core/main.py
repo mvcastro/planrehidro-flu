@@ -15,7 +15,8 @@ from planrehidro_flu.databases.internal.database_access import (
     insere_criterios_da_estacao,
     insere_inventario,
     retorna_estacoes_processadas,
-    update_criterio_da_estacao,
+    retorna_inventario,
+    update_criterio_da_estacao,retorna_estacoes_rhnr_cenario
 )
 from planrehidro_flu.databases.internal.models import (
     ENGINE,
@@ -65,8 +66,10 @@ def populate_info_tables() -> None:
 def processa_criterios() -> None:
     # Base.metadata.create_all(ENGINE, tables=[CriteriosDaEstacao.__table__])
 
+    estacoes_rhnr = retorna_estacoes_rhnr_cenario(engine=ENGINE, cenario='Cenário1')
+    
     hidro = HidroDWReader()
-    inventario = hidro.cria_inventario_estacao_hidro()
+    inventario = hidro.cria_inventario_estacao_hidro_por_codigos(codigos=[estacao.codigo for estacao in estacoes_rhnr])
 
     estacoes_processadas = retorna_estacoes_processadas(engine=ENGINE)
     estacoes_nao_processadas = [

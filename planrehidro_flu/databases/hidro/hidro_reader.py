@@ -149,7 +149,8 @@ class HidroDWReader:
                         Estacao.Descricao.not_like("%%HIDROOBSERVA%%"),
                         Estacao.Descricao.is_(None),
                     ),
-                ).union_all(
+                )
+                .union_all(
                     select(
                         Estacao.Codigo,
                         Estacao.Nome,
@@ -200,6 +201,92 @@ class HidroDWReader:
             ).cte()
 
             resposta = session.execute(select(stmt).distinct().order_by(stmt.c.Codigo))
+            rows_dict = [row._asdict() for row in resposta]
+            lista_estacoes_hidro = [
+                EstacaoHidro(
+                    codigo=row_dict["Codigo"],
+                    nome=row_dict["Nome"],
+                    latitude=row_dict["Latitude"],
+                    longitude=row_dict["Longitude"],
+                    altitude=row_dict["Altitude"],
+                    area_drenagem_km2=row_dict["AreaDrenagem"],
+                    bacia=row_dict["Bacia"],
+                    subbacia=row_dict["SubBacia"],
+                    rio=row_dict["Rio"],
+                    estado=row_dict["Estado"],
+                    municipio=row_dict["Municipio"],
+                    responsavel=row_dict["Responsavel"],
+                    tipo_estacao=row_dict["TipoEstacao"],
+                    estacao_telemetrica=row_dict["TipoEstacaoTelemetrica"],
+                    operando=row_dict["Operando"],
+                )
+                for row_dict in rows_dict
+            ]
+            return lista_estacoes_hidro
+
+    def cria_inventario_estacao_hidro_por_codigos(
+        self, codigos: list[int]
+    ) -> list[EstacaoHidro]:
+        with Session(self.engine) as session:
+            stmt = (
+                select(
+                    Estacao.Codigo,
+                    Estacao.Nome,
+                    Estacao.Latitude,
+                    Estacao.Longitude,
+                    Estacao.Altitude,
+                    Estacao.AreaDrenagem,
+                    Bacia.Nome.label("Bacia"),
+                    SubBacia.Nome.label("SubBacia"),
+                    Rio.Nome.label("Rio"),
+                    Estado.Nome.label("Estado"),
+                    Municipio.Nome.label("Municipio"),
+                    Entidade.Sigla.label("Responsavel"),
+                    Estacao.TipoEstacao,
+                    Estacao.TipoEstacaoTelemetrica,
+                    Estacao.Operando,
+                )
+                .join(Bacia, Estacao.BaciaCodigo == Bacia.Codigo, isouter=True)
+                .join(SubBacia, Estacao.SubBaciaCodigo == SubBacia.Codigo, isouter=True)
+                .join(Estado, Estacao.EstadoCodigo == Estado.Codigo, isouter=True)
+                .join(
+                    Municipio, Estacao.MunicipioCodigo == Municipio.Codigo, isouter=True
+                )
+                .join(
+                    Entidade, Estacao.ResponsavelCodigo == Entidade.Codigo, isouter=True
+                )
+                .join(Rio, Estacao.RioCodigo == Rio.Codigo, isouter=True)
+                .where(
+                    Estacao.Importado == 0,
+                    Estacao.Temporario == 0,
+                    Estacao.Removido == 0,
+                    Estacao.ImportadoRepetido == 0,
+                    Bacia.Importado == 0,
+                    Bacia.Temporario == 0,
+                    Bacia.Removido == 0,
+                    Bacia.ImportadoRepetido == 0,
+                    SubBacia.Importado == 0,
+                    SubBacia.Temporario == 0,
+                    SubBacia.Removido == 0,
+                    SubBacia.ImportadoRepetido == 0,
+                    Rio.Importado == 0,
+                    Rio.Temporario == 0,
+                    Rio.Removido == 0,
+                    Rio.ImportadoRepetido == 0,
+                    Estado.Importado == 0,
+                    Estado.Temporario == 0,
+                    Estado.Removido == 0,
+                    Estado.ImportadoRepetido == 0,
+                    Municipio.Importado == 0,
+                    Municipio.Temporario == 0,
+                    Municipio.Removido == 0,
+                    Municipio.ImportadoRepetido == 0,
+                    Estacao.Codigo.in_(codigos),
+                )
+                .order_by(Estacao.Codigo)
+            )
+
+            resposta = session.execute(stmt)
             rows_dict = [row._asdict() for row in resposta]
             lista_estacoes_hidro = [
                 EstacaoHidro(
