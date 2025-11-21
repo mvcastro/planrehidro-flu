@@ -5,14 +5,14 @@ from planrehidro_flu.databases.internal.models import (
     ENGINE,
     Base,
     CenarioEstacaoesRHNR,
-    InventarioEstacaoFluAna,
+    # InventarioEstacaoFluAna,
 )
 
 
 def migra_dados_dos_bancos():
     # BD Bases CPLAR
     postgres_reader = PostgresReader()
-    inventario = postgres_reader.retorna_dados_adicionais_estacoes()
+    # inventario = postgres_reader.retorna_dados_adicionais_estacoes()
     estacoes_cenario1 = postgres_reader.retorna_estacoes_rhnr_cenario1()
     estacoes_cenario2 = postgres_reader.retorna_estacoes_rhnr_cenario2()
     codigos_cenario1 = [estacao.codigo for estacao in estacoes_cenario1]
@@ -21,7 +21,7 @@ def migra_dados_dos_bancos():
 
     # BD Interno
     Base.metadata.create_all(bind=ENGINE)
-    inventario_sqlite = [InventarioEstacaoFluAna(**estacao) for estacao in inventario]
+    # inventario_sqlite = [InventarioEstacaoFluAna(**estacao) for estacao in inventario]
 
     # with Session(ENGINE) as session:
     #     session.add_all(inventario_sqlite)
