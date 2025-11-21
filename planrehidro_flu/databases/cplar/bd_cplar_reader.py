@@ -3,12 +3,12 @@ from operator import and_
 from typing import Sequence, cast
 
 import geopandas as gpd
-import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy import case, create_engine, or_, select, text
 from sqlalchemy.orm import Session
 
 from planrehidro_flu.databases.cplar.models import (
+    Entidade,
     EstacaoComObjetivos,
     EstacaoFlu,
     EstacaoHidroRefBHAE,
@@ -76,13 +76,19 @@ class PostgresReader:
 
     def retorna_estacoes_hidrorreferenciadas_de_montante[
         T: (EstacaoHidroRefBHO2013, EstacaoHidroRefBHAE)
-    ](self, classe_href: type[T], cobacia: str) -> list[T]:
+    ](self, classe_href: type[T], cobacia: str, no_mesmo_rio: bool = False) -> list[T]:
         cocursodag = cobacia_to_cocursodag(cobacia=cobacia)
         with Session(self.engine) as session:
             query = select(classe_href).where(
                 classe_href.cobacia >= cobacia,
                 classe_href.cocursodag.like(f"{cocursodag}%%"),
             )
+
+            if no_mesmo_rio:
+                query = select(classe_href).where(
+                    classe_href.cobacia >= cobacia,
+                    classe_href.cocursodag == cocursodag,
+                )
             response = session.execute(query).scalars().all()
 
         result = [estacao for estacao in response if estacao.area_drenagem is not None]
@@ -91,8 +97,12 @@ class PostgresReader:
 
     def retorna_estacoes_hidrorreferenciadas_de_jusante[
         T: (EstacaoHidroRefBHO2013, EstacaoHidroRefBHAE)
-    ](self, classe_href: type[T], cobacia: str) -> list[T]:
-        cocursodags = localiza_cocursodags_de_jusante(cobacia=cobacia)
+    ](self, classe_href: type[T], cobacia: str, no_mesmo_rio: bool = False) -> list[T]:
+        if no_mesmo_rio:
+            cocursodags = [cobacia_to_cocursodag(cobacia=cobacia)]
+        else:
+            cocursodags = localiza_cocursodags_de_jusante(cobacia=cobacia)
+
         with Session(self.engine) as session:
             query = select(classe_href).where(
                 classe_href.cobacia < cobacia,
@@ -243,8 +253,12 @@ class PostgresReader:
         with Session(self.engine) as session:
             response = (
                 session.execute(
-                    select(EstacaoFlu).where(
+                    select(EstacaoFlu)
+                    .join(Responsavel, Responsavel.codigo_estacao == EstacaoFlu.codigo)
+                    .where(
                         EstacaoFlu.codigo == EstacaoRHNRSelecaoInicial.codigo,
+                        EstacaoFlu.operando == 1,
+                        Responsavel.responsavel_codigo == ResponsavelEnum.ANA,
                     )
                 )
                 .scalars()
@@ -256,7 +270,13 @@ class PostgresReader:
         with Session(self.engine) as session:
             response = (
                 session.execute(
-                    select(EstacaoFlu).where(EstacaoFlu.descricao.like("%RHNR%"))
+                    select(EstacaoFlu)
+                    .join(Responsavel, Responsavel.codigo_estacao == EstacaoFlu.codigo)
+                    .where(
+                        EstacaoFlu.descricao.like("%RHNR%"),
+                        EstacaoFlu.operando == 1,
+                        Responsavel.responsavel_codigo == ResponsavelEnum.ANA,
+                    )
                 )
                 .scalars()
                 .all()
@@ -264,13 +284,19 @@ class PostgresReader:
 
         return response
 
-    def retorna_estacoes_propostas_rhnr(self) -> Sequence[EstacaoFlu]:
+    def retorna_estacoes_propostas_rhnr(
+        self, integra_rhnr: bool = True
+    ) -> Sequence[EstacaoFlu]:
         with Session(self.engine) as session:
             response = (
                 session.execute(
-                    select(EstacaoFlu).where(
+                    select(EstacaoFlu)
+                    .join(Responsavel, Responsavel.codigo_estacao == EstacaoFlu.codigo)
+                    .where(
                         EstacaoFlu.codigo == EstacaoPropostaRHNR.codigo,
-                        EstacaoPropostaRHNR.proposta_integra_rhnr.is_(True),
+                        EstacaoPropostaRHNR.proposta_integra_rhnr.is_(integra_rhnr),
+                        EstacaoFlu.operando == 1,
+                        Responsavel.responsavel_codigo == ResponsavelEnum.ANA,
                     )
                 )
                 .scalars()
@@ -285,8 +311,16 @@ class PostgresReader:
         """
         response1 = self.retorna_estacoes_rhnr_selecao_inicial()
         response2 = self.retorna_estacoes_implementadas_rhnr()
-        response3 = self.retorna_estacoes_propostas_rhnr()
-        data = list(response1) + list(response2) + list(response3)
+        response3 = self.retorna_estacoes_propostas_rhnr(integra_rhnr=True)
+        response4 = self.retorna_estacoes_propostas_rhnr(integra_rhnr=False)
+
+        estacoes_excluidas_da_rhnr = [est.codigo for est in response4]
+
+        data = [
+            est
+            for est in list(response1) + list(response2) + list(response3)
+            if est.codigo not in estacoes_excluidas_da_rhnr
+        ]
 
         seen_ids = set()
         unique_records = []
@@ -302,17 +336,21 @@ class PostgresReader:
         Retorna as estações RHNR do cenário 2:
         Apenas Estações Propostas para Integrar a RHNR.
         """
-        return list(self.retorna_estacoes_propostas_rhnr())
+        return list(self.retorna_estacoes_propostas_rhnr(integra_rhnr=True))
 
-    def retorna_dados_adicionais_estacoes(self) -> pd.DataFrame:
+    def retorna_dados_adicionais_estacoes(self) -> list[dict]:
         with Session(self.engine) as session:
             response = session.execute(
                 select(
                     EstacaoFlu.codigo,
+                    EstacaoFlu.nome,
+                    EstacaoFlu.latitude,
+                    EstacaoFlu.longitude,
+                    EstacaoFlu.area_drenagem.label("area_drenagem_km2"),
                     EstacaoFlu.bacia_codigo,
                     EstacaoFlu.subbacia_codigo,
                     Responsavel.responsavel_codigo,
-                    Operadora.operadora_codigo,
+                    Entidade.sigla.label("operadora"),
                     case(
                         (
                             and_(
@@ -400,10 +438,16 @@ class PostgresReader:
                         ),  # GOÍAS / SUREG-GO
                         else_=None,
                     ).label("operadora_regional"),
-                    Operadora.operadora_unidade,
                 )
                 .join(Responsavel, Responsavel.codigo_estacao == EstacaoFlu.codigo)
                 .join(Operadora, Operadora.codigo_estacao == EstacaoFlu.codigo)
+                .join(Entidade, Entidade.codigo == Operadora.operadora_codigo)
+                .where(
+                    EstacaoFlu.operando == 1,
+                    Responsavel.responsavel_codigo.in_(
+                        [ResponsavelEnum.ANA, ResponsavelEnum.SGB_CPRM]
+                    ),
+                )
             )
-            
-        return pd.DataFrame([row._asdict() for row in response])
+
+        return [row._asdict() for row in response]

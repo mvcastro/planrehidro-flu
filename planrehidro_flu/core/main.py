@@ -2,9 +2,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from tqdm import tqdm
 
-from planrehidro_flu.core.models import EstacaoHidro
 from planrehidro_flu.core.parametros_calculo import (
-    CalculoDoCriterioProximidadeEstacaoSetorEletrico,
+    CalculoDoCriterioProximidadeEstacaoRHNRCenario1,
+    CalculoDoCriterioProximidadeEstacaoRHNRCenario2,
 )
 from planrehidro_flu.core.parametros_multicriterio import (
     CriterioSelecionado,
@@ -117,13 +117,4 @@ def update_field(criterio: CriterioSelecionado):
 
 
 if __name__ == "__main__":
-    hidro_reader = HidroDWReader()
-    inventario = hidro_reader.cria_inventario_estacao_hidro()
-    estacao: EstacaoHidro = [e for e in inventario if e.codigo == 64897500][0]
-
-    valor_criterio = CalculoDoCriterioProximidadeEstacaoSetorEletrico().calcular(
-        estacao
-    )
-    print(valor_criterio)
-
-    # processa_criterios()
+    processa_criterios()

@@ -64,14 +64,15 @@ numerical_pages: list[PageData] = [
     },
     {
         "campo": "rhnr_c1",
-        "title": "Proximidade à estação da RHNR - Cenário 1",
+        # "title": "Proximidade à estação da RHNR - Cenário 1",
+        "title": "Proximidade à estação da RHNR",
         "icon": ":material/finance:",
     },
-    {
-        "campo": "rhnr_c2",
-        "title": "Proximidade à estação da RHNR - Cenário 2",
-        "icon": ":material/finance:",
-    },
+    # {
+    #     "campo": "rhnr_c2",
+    #     "title": "Proximidade à estação da RHNR - Cenário 2",
+    #     "icon": ":material/finance:",
+    # },
     {
         "campo": "extensao",
         "title": "Extensão da Série",

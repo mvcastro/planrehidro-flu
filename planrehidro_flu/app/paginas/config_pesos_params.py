@@ -13,10 +13,8 @@ from planrehidro_flu.app.consistencia_dataframe import (
     checa_consistencia_valores_da_classe,
 )
 from planrehidro_flu.app.data import (
-    cplar_reader,
     get_dados_adicionais_das_estacoes,
     get_estacoes_rhnr_cenario1,
-    get_estacoes_rhnr_cenario2,
 )
 from planrehidro_flu.app.paginas.default_pages import cdf
 from planrehidro_flu.app.params_default_values import (
@@ -31,6 +29,7 @@ from planrehidro_flu.core.parametros_multicriterio import (
     NomeCampo,
     parametros_multicriterio,
 )
+from planrehidro_flu.databases.internal.models import ENGINE
 
 
 def checa_consistencia_params():
@@ -63,11 +62,13 @@ def gera_criterios_para_processamento(session_state: dict) -> CriteriosProcessam
 def gera_graficos_dos_resultados(
     df_resultado: pd.DataFrame, cenarios: list[Literal["C1", "C2"]] | None = None
 ) -> None:
-    cenarios_selecionados = cenarios or ["C1", "C2"]
+    # cenarios_selecionados = cenarios or ["C1", "C2"]
+    cenarios_selecionados = cenarios or ["C1"]
     for cenario in cenarios_selecionados:
         st.plotly_chart(
             go.Figure(
-                data=go.Histogram(x=df_resultado[f"Total-{cenario}"]),
+                # data=go.Histogram(x=df_resultado[f"Total-{cenario}"]),
+                data=go.Histogram(x=df_resultado["Total"]),
                 layout=go.Layout(
                     title=go.layout.Title(
                         text=f"Histograma da Pontuação Total das Estações - {cenario}"
@@ -78,7 +79,9 @@ def gera_graficos_dos_resultados(
             )
         )
 
-        x_cdf, y_cdf = cdf(df_resultado[f"Total-{cenario}"])
+        # x_cdf, y_cdf = cdf(df_resultado[f"Total-{cenario}"])
+        x_cdf, y_cdf = cdf(df_resultado["Total"])
+        
         st.plotly_chart(
             go.Figure(
                 data=go.Scatter(
@@ -99,17 +102,16 @@ def gera_graficos_dos_resultados(
 @st.cache_data
 def gera_dataframe_com_dados_finais(df: pd.DataFrame) -> pd.DataFrame:
     df_final = df.copy()
-    df_c1 = get_estacoes_rhnr_cenario1(_cplar_reader=cplar_reader)
-    df_c2 = get_estacoes_rhnr_cenario2(_cplar_reader=cplar_reader)
-    df_final["Integra RHNR-C1?"] = df_final["codigo_estacao"].isin(df_c1["codigo"])
-    df_final["Integra RHNR-C2?"] = df_final["codigo_estacao"].isin(df_c2["codigo"])
+    df_c1 = get_estacoes_rhnr_cenario1(ENGINE)
+    # df_c2 = get_estacoes_rhnr_cenario2(ENGINE)
+    df_final["Integra RHNR?"] = df_final["codigo_estacao"].isin(df_c1["codigo"])
+    # df_final["Integra RHNR-C2?"] = df_final["codigo_estacao"].isin(df_c2["codigo"])
 
-    df_dados_adicionais = get_dados_adicionais_das_estacoes(_cplar_reader=cplar_reader)
+    df_dados_adicionais = get_dados_adicionais_das_estacoes(ENGINE)
 
     return df_dados_adicionais.merge(
         df_final, how="right", left_on="codigo", right_on="codigo_estacao"
     ).drop(columns=["codigo_estacao"])
-
 
 
 def gera_resultados(df_resultado: None | pd.DataFrame = None):
@@ -124,7 +126,7 @@ def gera_resultados(df_resultado: None | pd.DataFrame = None):
             opcoes_cenarios = [
                 "Todas as estações ",
                 "Ocultar estações RHNR - Cenário 1",
-                "Ocultar estações RHNR - Cenário 2",
+                # "Ocultar estações RHNR - Cenário 2",
             ]
             cenarios = st.radio(
                 "Filtro das estações que integram a RHNR:",
@@ -136,11 +138,12 @@ def gera_resultados(df_resultado: None | pd.DataFrame = None):
             df_final = gera_dataframe_com_dados_finais(df_resultado)
 
             if cenarios == opcoes_cenarios[1]:
-                df_tabela = df_final[~df_final["Integra RHNR-C1?"]]
+                df_tabela = df_final[~df_final["Integra RHNR?"]]
+                # df_tabela = df_final[~df_final["Integra RHNR-C1?"]]
                 gera_graficos_dos_resultados(df_tabela, cenarios=["C1"])
-            elif cenarios == opcoes_cenarios[2]:
-                df_tabela = df_final[~df_final["Integra RHNR-C2?"]]
-                gera_graficos_dos_resultados(df_tabela, cenarios=["C2"])
+            # elif cenarios == opcoes_cenarios[2]:
+            #     df_tabela = df_final[~df_final["Integra RHNR-C2?"]]
+            #     gera_graficos_dos_resultados(df_tabela, cenarios=["C2"])
             else:
                 df_tabela = df_final
                 gera_graficos_dos_resultados(df_tabela)

@@ -1,11 +1,13 @@
-from typing import Sequence
+from typing import Literal, Sequence
 
+import pandas as pd
 from sqlalchemy import Engine, select, update
 from sqlalchemy.orm import Session
 
 from planrehidro_flu.core.models import EstacaoHidro
 from planrehidro_flu.core.parametros_multicriterio import NomeCampo
 from planrehidro_flu.databases.internal.models import (
+    CenarioEstacaoesRHNR,
     CriteriosDaEstacao,
     EstacaoFluPorRH,
     InventarioEstacaoFluAna,
@@ -63,7 +65,7 @@ def retorna_criterios_por_rh(engine: Engine) -> Sequence[dict]:
             CriteriosDaEstacao.med_desc,
             CriteriosDaEstacao.est_energia,
             CriteriosDaEstacao.rhnr_c1,
-            CriteriosDaEstacao.rhnr_c2,
+            # CriteriosDaEstacao.rhnr_c2,
             RegiaoHidrografica.rhi_nm.label("nome_rh"),
         ).where(
             CriteriosDaEstacao.codigo_estacao == EstacaoFluPorRH.codigo,
@@ -105,3 +107,39 @@ def update_criterio_da_estacao(
             .values(**{campo: valor})  # type: ignore
         )
         session.commit()
+
+
+def retorna_dados_adicionais_estacoes(
+    engine: Engine,
+) -> pd.DataFrame:
+    with Session(engine) as session:
+        response = session.execute(select(InventarioEstacaoFluAna)).scalars().all()
+    return pd.DataFrame([row.to_dict() for row in response])
+
+
+def retorna_estacoes_rhnr_cenario(
+    engine: Engine, cenario: Literal["Cenário1", "Cenário2"]
+) -> Sequence[InventarioEstacaoFluAna]:
+    """
+    Retorna as estações RHNR do cenário 1:
+    Seleção Inicial + Estações Implementadas + Estações da Revisaõ para Integrar a RHNR.
+    """
+
+    with Session(engine) as session:
+        if cenario == "Cenário1":
+            query_cenario = select(CenarioEstacaoesRHNR).where(
+                CenarioEstacaoesRHNR.cenario1.is_(True)
+            )
+        else:
+            query_cenario = select(CenarioEstacaoesRHNR).where(
+                CenarioEstacaoesRHNR.cenario1.is_(True)
+            )
+        estacoes_cenario = session.execute(query_cenario).scalars().all()
+
+        query_inventario = select(InventarioEstacaoFluAna).where(
+            InventarioEstacaoFluAna.codigo.in_(
+                [estacao.codigo_estacao for estacao in estacoes_cenario]
+            )
+        )
+        response = session.execute(query_inventario).scalars().all()
+        return response

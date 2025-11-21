@@ -3,7 +3,7 @@ from datetime import date
 from typing import Optional
 
 from sqlalchemy import ForeignKey
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from planrehidro_flu.databases.hidro.enums import TipoDaEstacao
 
@@ -41,24 +41,27 @@ class Estacao(Base):
     Descricao: Mapped[str]
 
 
-    bacia: Mapped["Bacia"] = relationship(back_populates="estacao")
-
-
 class Bacia(Base):
     __tablename__ = "Bacia"
 
     Registroid: Mapped[int] = mapped_column(primary_key=True)
+    Importado: Mapped[int]
+    Temporario: Mapped[int]
+    Removido: Mapped[int]
+    ImportadoRepetido: Mapped[int]
     Codigo: Mapped[int]
     Nome: Mapped[str]
     Sigla: Mapped[str]
-
-    estacao: Mapped[list["Estacao"]] = relationship(back_populates="bacia")
 
 
 class SubBacia(Base):
     __tablename__ = "SubBacia"
 
     Registroid: Mapped[int] = mapped_column(primary_key=True)
+    Importado: Mapped[int]
+    Temporario: Mapped[int]
+    Removido: Mapped[int]
+    ImportadoRepetido: Mapped[int]
     Codigo: Mapped[int]
     Nome: Mapped[str]
     Jurisdicao: Mapped[int] = mapped_column(ForeignKey("Entidade.Codigo"))
@@ -69,6 +72,10 @@ class Entidade(Base):
     __tablename__ = "Entidade"
 
     Registroid: Mapped[int] = mapped_column(primary_key=True)
+    Importado: Mapped[int]
+    Temporario: Mapped[int]
+    Removido: Mapped[int]
+    ImportadoRepetido: Mapped[int]
     Codigo: Mapped[int]
     Nome: Mapped[str]
     Sigla: Mapped[str]
@@ -78,6 +85,10 @@ class Rio(Base):
     __tablename__ = "Rio"
 
     Registroid: Mapped[int] = mapped_column(primary_key=True)
+    Importado: Mapped[int]
+    Temporario: Mapped[int]
+    Removido: Mapped[int]
+    ImportadoRepetido: Mapped[int]
     Codigo: Mapped[int]
     Nome: Mapped[str]
     Jurisdicao: Mapped[int] = mapped_column(ForeignKey("Entidade.Codigo"))
@@ -89,6 +100,10 @@ class Estado(Base):
     __tablename__ = "Estado"
 
     Registroid: Mapped[int] = mapped_column(primary_key=True)
+    Importado: Mapped[int]
+    Temporario: Mapped[int]
+    Removido: Mapped[int]
+    ImportadoRepetido: Mapped[int]
     Codigo: Mapped[int]
     CodigoIBGE: Mapped[int]
     Sigla: Mapped[str]
@@ -99,6 +114,10 @@ class Municipio(Base):
     __tablename__ = "Municipio"
 
     RegistroId: Mapped[int] = mapped_column(primary_key=True)
+    Importado: Mapped[int]
+    Temporario: Mapped[int]
+    Removido: Mapped[int]
+    ImportadoRepetido: Mapped[int]
     Codigo: Mapped[int]
     CodigoIBGE: Mapped[int]
     Nome: Mapped[str]

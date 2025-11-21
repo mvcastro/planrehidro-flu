@@ -60,9 +60,10 @@ def processa_criterios(
     colunas = list(get_args(NomeCampo))
     df_resultado = pd.DataFrame(pontuacoes)[colunas]
     colunas_cenario1 = [col for col in colunas if col != "rhnr_c2"]
-    colunas_cenario2 = [col for col in colunas if col != "rhnr_c1"]
-    df_resultado["Total-C1"] = df_resultado[colunas_cenario1[1:]].sum(axis=1)
-    df_resultado["Total-C2"] = df_resultado[colunas_cenario2[1:]].sum(axis=1)
+    # colunas_cenario2 = [col for col in colunas if col != "rhnr_c1"]
+    df_resultado["Total"] = df_resultado[colunas_cenario1[1:]].sum(axis=1)
+    # df_resultado["Total-C1"] = df_resultado[colunas_cenario1[1:]].sum(axis=1)
+    # df_resultado["Total-C2"] = df_resultado[colunas_cenario2[1:]].sum(axis=1)
     
 
     return df_resultado

@@ -3,7 +3,7 @@ from typing import Literal, Sequence
 
 import pandas as pd
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, select, or_
+from sqlalchemy import create_engine, or_, select
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import Session
 
@@ -122,56 +122,84 @@ class HidroDWReader:
                     Estacao.Temporario == 0,
                     Estacao.Removido == 0,
                     Estacao.ImportadoRepetido == 0,
+                    Bacia.Importado == 0,
+                    Bacia.Temporario == 0,
+                    Bacia.Removido == 0,
+                    Bacia.ImportadoRepetido == 0,
+                    SubBacia.Importado == 0,
+                    SubBacia.Temporario == 0,
+                    SubBacia.Removido == 0,
+                    SubBacia.ImportadoRepetido == 0,
+                    Rio.Importado == 0,
+                    Rio.Temporario == 0,
+                    Rio.Removido == 0,
+                    Rio.ImportadoRepetido == 0,
+                    Estado.Importado == 0,
+                    Estado.Temporario == 0,
+                    Estado.Removido == 0,
+                    Estado.ImportadoRepetido == 0,
+                    Municipio.Importado == 0,
+                    Municipio.Temporario == 0,
+                    Municipio.Removido == 0,
+                    Municipio.ImportadoRepetido == 0,
                     Estacao.TipoEstacao == TipoEstacao.FLUVIOMETRICA,
                     Estacao.ResponsavelCodigo == ResponsavelEnum.ANA,
                     Estacao.Operando == 1,
                     or_(
                         Estacao.Descricao.not_like("%%HIDROOBSERVA%%"),
-                        Estacao.Descricao.is_(None)
+                        Estacao.Descricao.is_(None),
+                    ),
+                ).union_all(
+                    select(
+                        Estacao.Codigo,
+                        Estacao.Nome,
+                        Estacao.Latitude,
+                        Estacao.Longitude,
+                        Estacao.Altitude,
+                        Estacao.AreaDrenagem,
+                        Bacia.Nome.label("Bacia"),
+                        SubBacia.Nome.label("SubBacia"),
+                        Rio.Nome.label("Rio"),
+                        Estado.Nome.label("Estado"),
+                        Municipio.Nome.label("Municipio"),
+                        Entidade.Sigla.label("Responsavel"),
+                        Estacao.TipoEstacao,
+                        Estacao.TipoEstacaoTelemetrica,
+                        Estacao.Operando,
+                    )
+                    .join(Bacia, Estacao.BaciaCodigo == Bacia.Codigo, isouter=True)
+                    .join(
+                        SubBacia,
+                        Estacao.SubBaciaCodigo == SubBacia.Codigo,
+                        isouter=True,
+                    )
+                    .join(Estado, Estacao.EstadoCodigo == Estado.Codigo, isouter=True)
+                    .join(
+                        Municipio,
+                        Estacao.MunicipioCodigo == Municipio.Codigo,
+                        isouter=True,
+                    )
+                    .join(
+                        Entidade,
+                        Estacao.ResponsavelCodigo == Entidade.Codigo,
+                        isouter=True,
+                    )
+                    .join(Rio, Estacao.RioCodigo == Rio.Codigo, isouter=True)
+                    .where(
+                        Estacao.Importado == 0,
+                        Estacao.Temporario == 0,
+                        Estacao.Removido == 0,
+                        Estacao.ImportadoRepetido == 0,
+                        Estacao.TipoEstacao == TipoEstacao.FLUVIOMETRICA,
+                        Estacao.ResponsavelCodigo == ResponsavelEnum.ANA,
+                        Estacao.Operando == 1,
+                        Estacao.OperadoraCodigo == ResponsavelEnum.SGB_CPRM,
+                        Estacao.Descricao.like("%%HIDROOBSERVA%%"),
                     )
                 )
-            ).union_all(
-                select(
-                    Estacao.Codigo,
-                    Estacao.Nome,
-                    Estacao.Latitude,
-                    Estacao.Longitude,
-                    Estacao.Altitude,
-                    Estacao.AreaDrenagem,
-                    Bacia.Nome.label("Bacia"),
-                    SubBacia.Nome.label("SubBacia"),
-                    Rio.Nome.label("Rio"),
-                    Estado.Nome.label("Estado"),
-                    Municipio.Nome.label("Municipio"),
-                    Entidade.Sigla.label("Responsavel"),
-                    Estacao.TipoEstacao,
-                    Estacao.TipoEstacaoTelemetrica,
-                    Estacao.Operando,
-                )
-                .join(Bacia, Estacao.BaciaCodigo == Bacia.Codigo, isouter=True)
-                .join(SubBacia, Estacao.SubBaciaCodigo == SubBacia.Codigo, isouter=True)
-                .join(Estado, Estacao.EstadoCodigo == Estado.Codigo, isouter=True)
-                .join(
-                    Municipio, Estacao.MunicipioCodigo == Municipio.Codigo, isouter=True
-                )
-                .join(
-                    Entidade, Estacao.ResponsavelCodigo == Entidade.Codigo, isouter=True
-                )
-                .join(Rio, Estacao.RioCodigo == Rio.Codigo, isouter=True)
-                .where(
-                    Estacao.Importado == 0,
-                    Estacao.Temporario == 0,
-                    Estacao.Removido == 0,
-                    Estacao.ImportadoRepetido == 0,
-                    Estacao.TipoEstacao == TipoEstacao.FLUVIOMETRICA,
-                    Estacao.ResponsavelCodigo == ResponsavelEnum.ANA,
-                    Estacao.Operando == 1,
-                    Estacao.OperadoraCodigo == ResponsavelEnum.SGB_CPRM,
-                    Estacao.Descricao.like("%%HIDROOBSERVA%%"),
-                )
-            )
+            ).cte()
 
-            resposta = session.execute(stmt)
+            resposta = session.execute(select(stmt).distinct().order_by(stmt.c.Codigo))
             rows_dict = [row._asdict() for row in resposta]
             lista_estacoes_hidro = [
                 EstacaoHidro(

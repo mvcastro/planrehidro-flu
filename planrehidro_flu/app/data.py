@@ -5,11 +5,12 @@ import streamlit as st
 from sqlalchemy import Engine
 
 from planrehidro_flu.core.parametros_multicriterio import parametros_multicriterio
-from planrehidro_flu.databases.cplar.bd_cplar_reader import PostgresReader
 from planrehidro_flu.databases.internal.database_access import (
     retorna_criterios_das_estacoes,
     retorna_criterios_por_rh,
+    retorna_dados_adicionais_estacoes,
     retorna_estacoes_por_rh,
+    retorna_estacoes_rhnr_cenario,
     retorna_inventario,
 )
 from planrehidro_flu.databases.internal.models import (
@@ -21,11 +22,6 @@ from planrehidro_flu.databases.internal.models import (
 @st.cache_resource
 def get_internal_engine() -> Engine:
     return ENGINE
-
-
-@st.cache_resource
-def get_cplar_reader() -> PostgresReader:
-    return PostgresReader()
 
 
 @st.cache_data
@@ -75,27 +71,25 @@ def get_data_dictionary() -> pd.DataFrame:
 
 
 @st.cache_data
-def get_estacoes_rhnr_cenario1(_cplar_reader: PostgresReader) -> pd.DataFrame:
-    estacoes_c1 = _cplar_reader.retorna_estacoes_rhnr_cenario1()
+def get_estacoes_rhnr_cenario1(_engine: Engine) -> pd.DataFrame:
+    estacoes_c1 = retorna_estacoes_rhnr_cenario(engine=_engine, cenario="Cenário1")
     return pd.DataFrame([estacao.to_dict() for estacao in estacoes_c1])
 
 
 @st.cache_data
-def get_estacoes_rhnr_cenario2(_cplar_reader: PostgresReader) -> pd.DataFrame:
-    estacoes_c2 = _cplar_reader.retorna_estacoes_rhnr_cenario2()
+def get_estacoes_rhnr_cenario2(_engine: Engine) -> pd.DataFrame:
+    estacoes_c2 = retorna_estacoes_rhnr_cenario(engine=_engine, cenario="Cenário2")
     return pd.DataFrame([estacao.to_dict() for estacao in estacoes_c2])
 
 
 @st.cache_data
 def get_dados_adicionais_das_estacoes(
-    _cplar_reader: PostgresReader,
+    _engine: Engine,
 ) -> pd.DataFrame:
-    return _cplar_reader.retorna_dados_adicionais_estacoes()
+    return retorna_dados_adicionais_estacoes(_engine)
 
 
 internal_engine = get_internal_engine()
 df_criterios_rh = get_dados_criterios_por_rh(internal_engine)
 dados_criterios_estacoes = get_dados_criterios(internal_engine)
 df_dicionario = get_data_dictionary()
-
-cplar_reader = get_cplar_reader()

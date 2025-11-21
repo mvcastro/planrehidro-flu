@@ -3,8 +3,6 @@ from pathlib import Path
 from sqlalchemy import ForeignKey, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from planrehidro_flu.databases.hidro.enums import TipoEstacao
-
 ENGINE = create_engine(f"sqlite:///{Path(__file__).parent / 'database.db'}")
 
 
@@ -20,17 +18,12 @@ class InventarioEstacaoFluAna(Base):
     nome: Mapped[str | None]
     latitude: Mapped[float]
     longitude: Mapped[float]
-    altitude: Mapped[float | None]
     area_drenagem_km2: Mapped[float | None]
-    bacia: Mapped[str]
-    subbacia: Mapped[str]
-    rio: Mapped[str | None]
-    estado: Mapped[str]
-    municipio: Mapped[str]
-    responsavel: Mapped[str]
-    tipo_estacao: Mapped[TipoEstacao]
-    estacao_telemetrica: Mapped[bool]
-    operando: Mapped[bool]
+    bacia_codigo: Mapped[int]
+    subbacia_codigo: Mapped[int]
+    responsavel_codigo: Mapped[int]
+    operadora: Mapped[int]
+    operadora_regional: Mapped[str] = mapped_column(nullable=True)
 
 
 class GrupoCriterios(Base):
@@ -69,6 +62,13 @@ class CriteriosDaEstacao(Base):
     rhnr_c2: Mapped[float] = mapped_column(nullable=True)
 
 
+class Operadora(Base):
+    __tablename__ = "operadora"
+
+    codigo_estacao: Mapped[int] = mapped_column(primary_key=True)
+    operadora_codigo: Mapped[int]
+    operadora_unidade: Mapped[int]
+    operadora_subunidade: Mapped[int]
 
 
 class RegiaoHidrografica(Base):
@@ -84,3 +84,14 @@ class EstacaoFluPorRH(Base):
 
     codigo: Mapped[int] = mapped_column(primary_key=True)
     rhi_cd: Mapped[int] = mapped_column(ForeignKey("regioes_hidrograficas.rhi_cd"))
+    
+
+class CenarioEstacaoesRHNR(Base):
+    __tablename__ = "cenario_estacaoes_rhnr"
+        
+    codigo_estacao: Mapped[int] = mapped_column(primary_key=True)
+    cenario1: Mapped[bool] = mapped_column(nullable=False)
+    cenario2: Mapped[bool] = mapped_column(nullable=False)
+
+
+

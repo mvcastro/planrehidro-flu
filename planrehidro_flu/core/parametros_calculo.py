@@ -220,13 +220,21 @@ class CalculoDoCriterioProximidadeEstacaoRHNR(CalculoDoCriterio):
 
         estacoes_montante = (
             cplar_reader.retorna_estacoes_hidrorreferenciadas_de_montante(
-                classe_href=EstacaoHidroRefBHAE, cobacia=estacao_href.cobacia
+                classe_href=EstacaoHidroRefBHAE,
+                cobacia=estacao_href.cobacia,
+                no_mesmo_rio=True,
             )
         )
         estacoes_jusante = cplar_reader.retorna_estacoes_hidrorreferenciadas_de_jusante(
-            classe_href=EstacaoHidroRefBHAE, cobacia=estacao_href.cobacia
+            classe_href=EstacaoHidroRefBHAE,
+            cobacia=estacao_href.cobacia,
+            no_mesmo_rio=True,
         )
         estacoes_no_rio = list(estacoes_montante) + list(estacoes_jusante)
+
+        if not estacoes_no_rio:
+            return None
+
         codigos_estacoes_rhnr = {est.codigo for est in estacoes_rhnr}
         estacoes_selecionadas = [
             100 * abs(1 - (est.area_drenagem / estacao.area_drenagem_km2))
@@ -274,7 +282,8 @@ class CalculoDoCriterioProximidadeEstacaoSetorEletrico(CalculoDoCriterio):
         )
 
         estacoes_no_rio = {
-            est.codigo: est.nuareamont for est in estacoes_montante + estacoes_jusante
+            est.codigo: est.nuareamont
+            for est in estacoes_montante + estacoes_jusante
             if est.codigo != estacao.codigo
         }
         estacoes_hidro = hidro_reader.retorna_estacoes_por_codigo(

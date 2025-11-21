@@ -24,6 +24,7 @@ tqdm = "^4.67.1"
 types-tqdm = "^4.67.0.20250809"
 psycopg2-binary = "^2.9.10"
 openpyxl = "^3.1.5"
+nbformat = "^5.10.4"
 
 
 [build-system]

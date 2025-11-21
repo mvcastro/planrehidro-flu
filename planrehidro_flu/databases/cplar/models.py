@@ -58,6 +58,15 @@ class Operadora(Base):
     operadora_subunidade: Mapped[int]
 
 
+class Entidade(Base):
+    __tablename__ = "entidade"
+    __table_args__ = {"schema": "estacoes"}
+
+    codigo: Mapped[int] = mapped_column(primary_key=True)
+    sigla: Mapped[str]
+    nome: Mapped[str]
+
+
 class EstacaoHidroRefBHO2013(Base):
     __tablename__ = "estacoes_hidrorreferenciadas_bho2013"
     __table_args__ = {"schema": "hidrorref_bho2013"}

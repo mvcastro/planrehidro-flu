@@ -14,7 +14,7 @@ DEFAULT_WEIGTH_PARAMS: dict[NomeCampo, int] = {
     "med_desc": 1,
     "est_energia": 1,
     "rhnr_c1": 1,
-    "rhnr_c2": 1,
+    # "rhnr_c2": 1,
 }
 
 DEFAULT_PARAMS_CLASSES: Params = {
@@ -52,9 +52,9 @@ DEFAULT_PARAMS_CLASSES: Params = {
         (10.0, 30.0, 2.0),
         (30.0, None, 3.0),
     ],
-    "rhnr_c2": [
-        (0.0, 10.0, 0.0),
-        (10.0, 30.0, 2.0),
-        (30.0, None, 3.0),
-    ],
+    # "rhnr_c2": [
+    #     (0.0, 10.0, 0.0),
+    #     (10.0, 30.0, 2.0),
+    #     (30.0, None, 3.0),
+    # ],
 }

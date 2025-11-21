@@ -34,7 +34,7 @@ NomeCampo = Literal[
     "med_desc",
     "est_energia",
     "rhnr_c1",
-    "rhnr_c2",
+    # "rhnr_c2",
 ]
 
 
@@ -78,17 +78,18 @@ parametros_multicriterio: list[CriterioSelecionado] = [
     {
         "grupo": "Localização da Estação",
         "nome_campo": "rhnr_c1",
-        "descricao": "Proximidade à estação da RHNR - Cenário1",
+        # "descricao": "Proximidade à estação da RHNR - Cenário1",
+        "descricao": "Proximidade à estação da RHNR",
         "unidade": "Relação entre áreas de drenagem (%)",
         "calculo": CalculoDoCriterioProximidadeEstacaoRHNRCenario1(),
     },
-    {
-        "grupo": "Localização da Estação",
-        "nome_campo": "rhnr_c2",
-        "descricao": "Proximidade à estação da RHNR - Cenário2",
-        "unidade": "Relação entre áreas de drenagem (%)",
-        "calculo": CalculoDoCriterioProximidadeEstacaoRHNRCenario2(),
-    },
+    # {
+    #     "grupo": "Localização da Estação",
+    #     "nome_campo": "rhnr_c2",
+    #     "descricao": "Proximidade à estação da RHNR - Cenário2",
+    #     "unidade": "Relação entre áreas de drenagem (%)",
+    #     "calculo": CalculoDoCriterioProximidadeEstacaoRHNRCenario2(),
+    # },
     {
         "grupo": "Localização da Estação",
         "nome_campo": "est_energia",
