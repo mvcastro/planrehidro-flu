@@ -2,10 +2,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from tqdm import tqdm
 
-from planrehidro_flu.core.parametros_calculo import (
-    CalculoDoCriterioProximidadeEstacaoRHNRCenario1,
-    CalculoDoCriterioProximidadeEstacaoRHNRCenario2,
-)
 from planrehidro_flu.core.parametros_multicriterio import (
     CriterioSelecionado,
     parametros_multicriterio,
@@ -15,8 +11,8 @@ from planrehidro_flu.databases.internal.database_access import (
     insere_criterios_da_estacao,
     insere_inventario,
     retorna_estacoes_processadas,
-    retorna_inventario,
-    update_criterio_da_estacao,retorna_estacoes_rhnr_cenario
+    retorna_estacoes_rhnr_cenario,
+    update_criterio_da_estacao,
 )
 from planrehidro_flu.databases.internal.models import (
     ENGINE,
@@ -66,10 +62,12 @@ def populate_info_tables() -> None:
 def processa_criterios() -> None:
     # Base.metadata.create_all(ENGINE, tables=[CriteriosDaEstacao.__table__])
 
-    estacoes_rhnr = retorna_estacoes_rhnr_cenario(engine=ENGINE, cenario='Cenário1')
-    
+    estacoes_rhnr = retorna_estacoes_rhnr_cenario(engine=ENGINE, cenario="Cenário1")
+
     hidro = HidroDWReader()
-    inventario = hidro.cria_inventario_estacao_hidro_por_codigos(codigos=[estacao.codigo for estacao in estacoes_rhnr])
+    inventario = hidro.cria_inventario_estacao_hidro_por_codigos(
+        codigos=[estacao.codigo for estacao in estacoes_rhnr]
+    )
 
     estacoes_processadas = retorna_estacoes_processadas(engine=ENGINE)
     estacoes_nao_processadas = [
@@ -120,4 +118,14 @@ def update_field(criterio: CriterioSelecionado):
 
 
 if __name__ == "__main__":
-    processa_criterios()
+    # processa_criterios()
+    # update_field(
+    #     {
+    #         "grupo": "Objetivos da Estação",
+    #         "nome_campo": "navegacao",
+    #         "descricao": "Trecho usado para navegação",
+    #         "unidade": "booleano",
+    #         "calculo": CalculoDoCriterioTrechoDeNavegacao(),
+    #     }
+    # )
+    ...

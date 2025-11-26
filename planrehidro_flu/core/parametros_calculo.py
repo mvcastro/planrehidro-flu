@@ -405,17 +405,34 @@ class CalculoDoCriterioDescargaLiquidaAnual(CalculoDoCriterio):
 
         if not resumo_de_descarga:
             print(
-                f"Nenhum medição de descarga disponível para a estação {estacao.codigo}"
+                f"Nenhuma medição de descarga disponível para a estação {estacao.codigo}"
             )
             print(
                 "Não é possível calcular a média anual do número de descargas líquidas -> Retornando 0.0!"
             )
             return 0.0
 
+        serie_historica = hidro_reader.retorna_serie_historica_cota(estacao.codigo)
+        if not serie_historica:
+            print(
+                f"Não existem dados de cota consistidas para a estação {estacao.codigo}"
+            )
+            print(
+                "Não é possível calcular a média anual do número de descargas líquidas -> Retornando 0.0!"
+            )
+            return 0.0
+
+        data_inicial = serie_historica[0].Data
+        if data_inicial.month <= 2:
+            ano_inicial = data_inicial.year
+        else:
+            ano_inicial = data_inicial.year + 1
+
         estats = retorna_estatisticas_descarga_liquida(
             resumo_descarga=[
                 resumo for resumo in resumo_de_descarga if resumo.data.year <= 2024
             ],
             ano_referencia=2024,
+            ano_inicial=ano_inicial,
         )
         return estats[1]

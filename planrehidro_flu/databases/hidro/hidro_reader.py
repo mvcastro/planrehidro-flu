@@ -330,10 +330,11 @@ class HidroDWReader:
                 ResumoDescarga.Temporario == 0,
                 ResumoDescarga.Removido == 0,
                 ResumoDescarga.ImportadoRepetido == 0,
+                ResumoDescarga.Cota.is_not(None),
+                ResumoDescarga.Vazao.is_not(None),
             )
             .order_by(ResumoDescarga.Data)
         )
-
         with Session(self.engine) as session:
             response = session.execute(query).all()
             result = [ResumoDeDescarga(**row._mapping) for row in response]
@@ -385,9 +386,13 @@ class HidroDWReader:
         codigo: int,
         nivel_consistencia: NivelConsistencia = NivelConsistencia.CONSISTIDO,
     ) -> Sequence[PivotCota]:
-        query = select(PivotCota).where(
-            PivotCota.EstacaoCodigo == codigo,
-            PivotCota.NivelConsistencia == nivel_consistencia.value,
+        query = (
+            select(PivotCota)
+            .where(
+                PivotCota.EstacaoCodigo == codigo,
+                PivotCota.NivelConsistencia == nivel_consistencia.value,
+            )
+            .order_by(PivotCota.Data)
         )
         with Session(self.engine) as session:
             response = session.execute(query).scalars().all()

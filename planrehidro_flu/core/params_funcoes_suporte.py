@@ -53,14 +53,13 @@ def pivot_cota_to_dataframe(serie_vazao: Sequence[PivotCota]) -> pd.DataFrame:
 
 
 def retorna_estatisticas_descarga_liquida(
-    resumo_descarga: list[ResumoDeDescarga], ano_referencia: int
+    resumo_descarga: list[ResumoDeDescarga], ano_referencia: int, ano_inicial: int
 ) -> tuple[float, float]:
     if not resumo_descarga:
         raise ValueError("Nenhum resumo de descarga encontrado para o código fornecido")
 
     total_medicoes = len(resumo_descarga)
-    ano_minimo = min(descarga.data.year for descarga in resumo_descarga)
-    medicoes_por_ano = total_medicoes / (ano_referencia - ano_minimo)
+    medicoes_por_ano = total_medicoes / (ano_referencia - ano_inicial + 1)
 
     return total_medicoes, medicoes_por_ano
 
@@ -88,8 +87,12 @@ def calcula_desvio_medio_curva_chave(
     desvios: list[float] = []
 
     for descarga in resumo_descarga:
-        if descarga.vazao is None or descarga.vazao == 0.0:
-            warnings.warn("Descarga no resumo de descarga encontrada com vazão nula!")
+        if descarga.vazao is None:
+            warnings.warn("Descarga no resumo de descarga encontrada sem dado de vazão!")
+            continue
+        
+        if descarga.vazao == 0.0:
+            warnings.warn("Descarga no resumo de descarga encontrada com vazão igual a zero!")
             continue
 
         curva_descarga = [

@@ -9,7 +9,6 @@ from planrehidro_flu.core.parametros_calculo import (
     CalculoDoCriterioExtensaoDaSerie,
     CalculoDoCriterioISHNaAreaDrenagem,
     CalculoDoCriterioProximidadeEstacaoRHNRCenario1,
-    CalculoDoCriterioProximidadeEstacaoRHNRCenario2,
     CalculoDoCriterioProximidadeEstacaoSetorEletrico,
     CalculoDoCriterioRelevanciaEspacial,
     CalculoDoCriterioTrechoDeNavegacao,
