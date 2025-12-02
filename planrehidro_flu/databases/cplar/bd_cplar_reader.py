@@ -355,7 +355,7 @@ class PostgresReader:
                         (
                             and_(
                                 Operadora.operadora_codigo == 82,
-                                Operadora.operadora_unidade in (1, 2),
+                                Operadora.operadora_unidade.in_([1, 2]),
                             ),
                             "PORTO VELHO - REPO",
                         ),  # RONDÔNIA - ACRE / REPO
