@@ -245,11 +245,11 @@ def default_page_config_params_points() -> None:
 
         st.session_state[f"params_{nome_campo}_default_df"] = editable_df
 
-    botao_restaurar_padrao = st.button(
-        "Restaurar valores padrão", type="primary", icon="♻️"
-    )
-    if botao_restaurar_padrao:
-        st.rerun()
+    # botao_restaurar_padrao = st.button(
+    #     "Restaurar valores padrão", type="primary", icon="♻️"
+    # )
+    # if botao_restaurar_padrao:
+    #     st.rerun()
 
     st.session_state["resultado"] = None
     processar = st.button("⚡ Processar ⚡")
