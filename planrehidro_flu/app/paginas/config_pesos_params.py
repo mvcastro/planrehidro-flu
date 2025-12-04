@@ -155,7 +155,7 @@ def gera_resultados(df_resultado: None | pd.DataFrame = None):
             )
 
             if filtro:
-                st.dataframe(df_tabela[df_tabela["codigo_estacao"] == filtro])
+                st.dataframe(df_tabela[df_tabela["codigo"] == filtro])
             else:
                 st.dataframe(df_tabela, hide_index=True)
 

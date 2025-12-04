@@ -18,11 +18,25 @@ option = st.selectbox(
     index=None,
     placeholder="Selecione um código de estação para filtar a tabela...",
 )
+COLUNAS = [
+    "codigo_estacao",
+    "nome",
+    "area_dren",
+    "espacial",
+    "ish",
+    "irrigacao",
+    "navegacao",
+    "extensao",
+    "desv_cchave",
+    "med_desc",
+    "est_energia",
+    "rhnr_c1",
+]
 
 if option:
     st.dataframe(
-        df_criterios_rh[list(get_args(NomeCampo))][df_criterios_rh.codigo_estacao == option],
+        df_criterios_rh[COLUNAS][df_criterios_rh.codigo_estacao == option],
         hide_index=True,
     )
 else:
-    st.dataframe(df_criterios_rh[list(get_args(NomeCampo))], hide_index=True)
+    st.dataframe(df_criterios_rh[COLUNAS], hide_index=True)

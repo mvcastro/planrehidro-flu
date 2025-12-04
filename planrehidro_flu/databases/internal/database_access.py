@@ -143,3 +143,5 @@ def retorna_estacoes_rhnr_cenario(
         )
         response = session.execute(query_inventario).scalars().all()
         return response
+
+

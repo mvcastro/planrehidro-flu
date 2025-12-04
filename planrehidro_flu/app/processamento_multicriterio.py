@@ -46,9 +46,14 @@ def processa_criterios(
                 categoria = categoricos[cast(Literal[0, 1], valor_campo)]
                 pontuacao = calculo_dados_categoricos(df_classif, categoria)
             else:
-                valor_criterio = (
-                    estacao[nome_campo] if estacao[nome_campo] is not None else 0.0
-                )
+                valor_criterio = estacao[nome_campo]
+                # Se desv_cchave for nulo -> pontuação = 0 0
+                # Se est_energia ou rhnr_c1 forem nulos -> pontuação = 9999.0
+                if valor_criterio is None:
+                    if nome_campo == "desv_cchave":
+                        valor_criterio = 0.0
+                    if nome_campo in ("est_energia", "rhnr_c1"):
+                        valor_criterio = 9999.0
                 valor_criterio = valor_criterio if valor_criterio >= 0.0 else 0.0
                 pontuacao = calculo_dados_numericos(df_classif, valor_criterio)
             pontuacao_estacao[nome_campo] = pontuacao
